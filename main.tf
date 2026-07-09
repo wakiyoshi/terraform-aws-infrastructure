@@ -5,4 +5,6 @@ module "network" {
   environment  = var.environment
   vpc_cidr     = var.vpc_cidr
   common_tags  = local.common_tags
+
+  availability_zones = var.availability_zones
 }

@@ -13,6 +13,11 @@ variable "vpc_cidr" {
   type        = string
 }
 
+variable "availability_zones" {
+  description = "Availability Zones"
+  type        = list(string)
+}
+
 variable "common_tags" {
   description = "Common tags"
   type        = map(string)
