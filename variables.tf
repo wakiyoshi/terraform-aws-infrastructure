@@ -22,3 +22,8 @@ variable "availability_zones" {
   description = "Availability Zones"
   type        = list(string)
 }
+
+variable "application_port" {
+  description = "Application port"
+  type        = number
+}

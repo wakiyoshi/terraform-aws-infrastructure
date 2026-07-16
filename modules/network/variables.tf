@@ -22,3 +22,8 @@ variable "common_tags" {
   description = "Common tags"
   type        = map(string)
 }
+
+variable "application_port" {
+  description = "Application port"
+  type        = number
+}

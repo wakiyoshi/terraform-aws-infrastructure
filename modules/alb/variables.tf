@@ -8,6 +8,11 @@ variable "environment" {
   type        = string
 }
 
+variable "vpc_id" {
+  description = "VPC ID"
+  type        = string
+}
+
 variable "vpc_cidr" {
   description = "VPC CIDR Block"
   type        = string
@@ -33,4 +38,23 @@ variable "public_subnet_ids" {
   type        = list(string)
 }
 
+// HTTPS（TLS）通信を成立させるために証明書が必須
+variable "certificate_arn" {
+  description = "ARN of the ACM certificate used by the HTTPS listener"
+  type        = string
+}
 
+variable "ssl_policy" {
+  description = "TLS security policy used by the HTTPS listener"
+  type        = string
+  default     = "ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09"
+}
+
+variable "application_port" {
+  description = "Application port"
+  type        = number
+}
+
+variable "health_check_path" {
+  default = "/health"
+}
