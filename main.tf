@@ -24,6 +24,6 @@ module "alb" {
   common_tags  = local.common_tags
 
   availability_zones = var.availability_zones
-
+  application_port = var.application_port
   certificate_arn = module.acm.certificate_arn
 }
