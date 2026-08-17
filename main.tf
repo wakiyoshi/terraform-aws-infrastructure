@@ -11,6 +11,28 @@ module "network" {
   application_port = var.application_port
 }
 
+module "route53" {
+  source = "./modules/route53"
+
+  project_name = var.project_name
+  environment  = var.environment
+  domain_name  = var.domain_name
+  common_tags  = local.common_tags
+
+  alb_dns_name = module.alb.dns_name
+  alb_zone_id  = module.alb.zone_id
+}
+
+module "acm" {
+  source = "./modules/acm"
+
+  project_name    = var.project_name
+  environment     = var.environment
+  domain_name     = var.domain_name
+  route53_zone_id = module.route53.zone_id
+  common_tags     = local.common_tags
+}
+
 module "alb" {
   source = "./modules/alb"
 
