@@ -1,30 +1,26 @@
 data "aws_caller_identity" "current" {}
 
-data "aws_partition" "current" {}
-
 data "aws_region" "current" {}
 
 locals {
   generated_bucket_name = lower(
-    "${var.project_name}-${var.environment}-alb-logs-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.region}"
+    "${var.project_name}-${var.environment}-frontend-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.region}"
   )
-  // ユーザーが指定したものがある場合はそれを優先する
   bucket_name = coalesce(var.bucket_name, local.generated_bucket_name)
 }
 
-resource "aws_s3_bucket" "alb_access_logs" {
+resource "aws_s3_bucket" "frontend" {
   bucket        = local.bucket_name
   force_destroy = var.force_destroy
 
   tags = merge(var.common_tags, {
     Name    = local.bucket_name
-    Purpose = "ALB access logs"
+    Purpose = "Frontend SPA assets"
   })
 }
 
-//　パブリックブロック設定
-resource "aws_s3_bucket_public_access_block" "alb_access_logs" {
-  bucket = aws_s3_bucket.alb_access_logs.id
+resource "aws_s3_bucket_public_access_block" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
 
   block_public_acls       = true
   block_public_policy     = true
@@ -32,16 +28,24 @@ resource "aws_s3_bucket_public_access_block" "alb_access_logs" {
   restrict_public_buckets = true
 }
 
-resource "aws_s3_bucket_ownership_controls" "alb_access_logs" {
-  bucket = aws_s3_bucket.alb_access_logs.id
+resource "aws_s3_bucket_ownership_controls" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
 
   rule {
     object_ownership = "BucketOwnerEnforced"
   }
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "alb_access_logs" {
-  bucket = aws_s3_bucket.alb_access_logs.id
+resource "aws_s3_bucket_versioning" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
 
   rule {
     apply_server_side_encryption_by_default {

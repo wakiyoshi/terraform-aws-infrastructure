@@ -9,8 +9,8 @@ resource "aws_lb_listener" "http" {
     type = "redirect"
 
     redirect {
-      port        = "443"
-      protocol    = "HTTPS"
+      port     = "443"
+      protocol = "HTTPS"
       //301 Moved Permanently（恒久的リダイレクト）
       status_code = "HTTP_301"
     }
@@ -31,7 +31,7 @@ resource "aws_lb_listener" "https" {
   protocol          = "HTTPS"
   certificate_arn   = var.certificate_arn
   // TLS接続のルールを決める
-  ssl_policy        = var.ssl_policy
+  ssl_policy = var.ssl_policy
 
   default_action {
     // forwardは、リクエストをターゲットグループに転送する

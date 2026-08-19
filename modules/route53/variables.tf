@@ -13,16 +13,6 @@ variable "domain_name" {
   type        = string
 }
 
-variable "alb_dns_name" {
-  description = "DNS name of the Application Load Balancer"
-  type        = string
-}
-
-variable "alb_zone_id" {
-  description = "Canonical hosted zone ID of the Application Load Balancer"
-  type        = string
-}
-
 variable "common_tags" {
   description = "Common tags applied to resources"
   type        = map(string)
