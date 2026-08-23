@@ -30,6 +30,7 @@ resource "aws_cloudfront_distribution" "main" {
   default_root_object = "index.html"
   price_class         = var.price_class
   http_version        = "http2and3"
+  web_acl_id          = aws_wafv2_web_acl.main.arn
 
   origin {
     domain_name              = var.frontend_bucket_regional_domain_name

@@ -60,6 +60,11 @@ module "s3" {
 module "cloudfront" {
   source = "./modules/cloudfront"
 
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
+
   project_name = var.project_name
   environment  = var.environment
 
