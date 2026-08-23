@@ -1,13 +1,13 @@
 project_name = "grant-application"
 
-environment = "prod"
+environment = "dev"
 
 vpc_cidr = "10.0.0.0/16"
 
 application_port = 8080
 
-# 仮の値。apply前に所有しているドメインへ置き換えること
-domain_name = "grant-application.example.com"
+# 仮の値。apply前に開発環境のドメインへ置き換えること
+domain_name = "dev.grant-application.example.com"
 
 aws_region = "ap-northeast-1"
 
