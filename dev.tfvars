@@ -1,7 +1,3 @@
-
-
-
-
 project_name = "my-application"
 
 environment = "dev"
