@@ -36,22 +36,3 @@ User
 → ECS Fargate
 → Aurora MySQL
 
-## Directory Structure
-
-```text
-.
-├── main.tf
-├── variables.tf
-├── outputs.tf
-├── locals.tf
-├── vpc.tf
-├── alb.tf
-├── ecs.tf
-├── ecr.tf
-├── rds.tf
-├── s3.tf
-├── cloudfront.tf
-├── iam.tf
-├── codepipeline.tf
-├── terraform.tfvars
-└── README.md
