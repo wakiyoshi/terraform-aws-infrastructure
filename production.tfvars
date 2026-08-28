@@ -1,4 +1,4 @@
-project_name = "my-application"
+project_name = "grant-application"
 
 environment = "prod"
 
