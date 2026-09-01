@@ -70,9 +70,9 @@ module "s3" {
 #   project_name = var.project_name
 #   environment  = var.environment
 
-#   frontend_bucket_id                   = module.s3.bucket_id
-#   frontend_bucket_arn                  = module.s3.bucket_arn
-#   frontend_bucket_regional_domain_name = module.s3.bucket_regional_domain_name
+#   frontend_bucket_id                   = module.s3.buckets["frontend"].id
+#   frontend_bucket_arn                  = module.s3.buckets["frontend"].arn
+#   frontend_bucket_regional_domain_name = module.s3.buckets["frontend"].bucket_regional_domain_name
 
 #   alb_origin_domain_name = var.domain_name
 #   backend_path_pattern   = var.backend_path_pattern

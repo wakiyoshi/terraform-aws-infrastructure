@@ -1,14 +1,11 @@
-output "bucket_id" {
-  description = "Name of the frontend bucket"
-  value       = aws_s3_bucket.frontend.id
-}
+output "buckets" {
+  description = "Created S3 buckets keyed by purpose"
 
-output "bucket_arn" {
-  description = "ARN of the frontend bucket"
-  value       = aws_s3_bucket.frontend.arn
-}
-
-output "bucket_regional_domain_name" {
-  description = "Regional domain name used by the CloudFront S3 origin"
-  value       = aws_s3_bucket.frontend.bucket_regional_domain_name
+  value = {
+    for key, bucket in aws_s3_bucket.this : key => {
+      id                          = bucket.id
+      arn                         = bucket.arn
+      bucket_regional_domain_name = bucket.bucket_regional_domain_name
+    }
+  }
 }

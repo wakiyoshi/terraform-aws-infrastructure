@@ -79,4 +79,26 @@ resource "aws_vpc_security_group_ingress_rule" "rds_from_ecs" {
   referenced_security_group_id = aws_security_group.ecs.id
 }
 
+# Interface型VPC Endpoint用SG
+resource "aws_security_group" "vpc_endpoint" {
+  name        = "${var.project_name}-${var.environment}-vpc-endpoint-sg"
+  description = "Security group for interface VPC endpoints"
+  vpc_id      = aws_vpc.main.id
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-vpc-endpoint-sg"
+  })
+}
+
+# ECSタスクからInterface型VPC EndpointへのHTTPS通信
+resource "aws_vpc_security_group_ingress_rule" "vpc_endpoint_https_from_ecs" {
+  security_group_id = aws_security_group.vpc_endpoint.id
+  description       = "Allow HTTPS from ECS tasks"
+
+  ip_protocol = "tcp"
+  from_port   = 443
+  to_port     = 443
+
+  referenced_security_group_id = aws_security_group.ecs.id
+}
 
