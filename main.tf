@@ -1,7 +1,7 @@
 //moduleの呼び出し、varの受け渡し。
 
 module "network" {
-  source = "./modules/network"
+  source = "./modules/network/vpc"
 
   project_name       = var.project_name
   environment        = var.environment
@@ -12,7 +12,7 @@ module "network" {
 }
 
 module "s3" {
-  source = "./modules/s3"
+  source = "./modules/storage/s3"
 
   project_name  = var.project_name
   environment   = var.environment
@@ -22,7 +22,7 @@ module "s3" {
 }
 
 # module "route53" {
-#   source = "./modules/route53"
+#   source = "./modules/network/route53"
 
 #   project_name = var.project_name
 #   environment  = var.environment
@@ -31,7 +31,7 @@ module "s3" {
 # }
 
 # module "acm" {
-#   source = "./modules/acm"
+#   source = "./modules/security/acm"
 
 #   project_name    = var.project_name
 #   environment     = var.environment
@@ -41,7 +41,7 @@ module "s3" {
 # }
 
 # module "alb" {
-#   source = "./modules/alb"
+#   source = "./modules/network/alb"
 
 #   project_name          = var.project_name
 #   environment           = var.environment
@@ -60,7 +60,7 @@ module "s3" {
 
 
 # module "cloudfront" {
-#   source = "./modules/cloudfront"
+#   source = "./modules/network/cloudfront"
 
 #   providers = {
 #     aws           = aws
