@@ -7,10 +7,6 @@ locals {
     frontend = {
       purpose       = "Frontend SPA assets"
       force_destroy = false
-    },
-    tfstate = {
-      purpose       = "Terraform state"
-      force_destroy = false
     }
   }
 }
