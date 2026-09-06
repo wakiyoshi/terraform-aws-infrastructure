@@ -1,15 +1,15 @@
 //moduleの呼び出し、varの受け渡し。
 
-module "network" {
-  source = "./modules/network/vpc"
+# module "network" {
+#   source = "./modules/network/vpc"
 
-  project_name       = var.project_name
-  environment        = var.environment
-  availability_zones = var.availability_zones
-  vpc_cidr           = var.vpc_cidr
-  common_tags        = local.common_tags
-  application_port   = var.application_port
-}
+#   project_name       = var.project_name
+#   environment        = var.environment
+#   availability_zones = var.availability_zones
+#   vpc_cidr           = var.vpc_cidr
+#   common_tags        = local.common_tags
+#   application_port   = var.application_port
+# }
 
 module "s3" {
   source = "./modules/storage/s3"

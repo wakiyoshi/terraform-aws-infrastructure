@@ -36,3 +36,9 @@ User
 → ECS Fargate
 → Aurora MySQL
 
+
+デプロイ方法
+
+aws login --profile dev-account
+export AWS_PROFILE=dev-account
+aws sts get-caller-identity --profile dev-account
