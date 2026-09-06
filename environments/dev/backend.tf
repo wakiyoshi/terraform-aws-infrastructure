@@ -1,10 +1,8 @@
-// dev環境のtfstate保存先
 terraform {
   backend "s3" {
-    bucket       = "my-application-dev-tfstate-463200133916-ap-northeast-1"
+    bucket       = "grant-application-tfstate-463200133916-ap-northeast-1"
     key          = "dev/terraform.tfstate"
     region       = "ap-northeast-1"
-    profile      = "dev-account"
     encrypt      = true
     use_lockfile = true
   }

@@ -1,11 +1,39 @@
+terraform {
+  required_version = "~> 1.13"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.aws_region
+
+  default_tags {
+    tags = {
+      Project     = var.project_name
+      Environment = var.environment
+      ManagedBy   = "Terraform"
+      Purpose     = "TerraformState"
+    }
+  }
+}
+
+variable "project_name" { type = string }
+variable "environment" { type = string }
+variable "aws_region" { type = string }
+
 data "aws_caller_identity" "current" {}
 
 locals {
-  state_bucket_name = "${var.project_name}-tfstate-${data.aws_caller_identity.current.account_id}-${var.aws_region}"
+  bucket_name = "${var.project_name}-${var.environment}-terraform-state-${data.aws_caller_identity.current.account_id}-${var.aws_region}"
 }
 
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = local.state_bucket_name
+  bucket = local.bucket_name
 
   lifecycle {
     prevent_destroy = true
@@ -54,7 +82,6 @@ resource "aws_s3_bucket_policy" "require_tls" {
 
 data "aws_iam_policy_document" "require_tls" {
   statement {
-    sid    = "DenyInsecureTransport"
     effect = "Deny"
 
     principals {
@@ -63,7 +90,6 @@ data "aws_iam_policy_document" "require_tls" {
     }
 
     actions = ["s3:*"]
-
     resources = [
       aws_s3_bucket.terraform_state.arn,
       "${aws_s3_bucket.terraform_state.arn}/*",
@@ -75,4 +101,8 @@ data "aws_iam_policy_document" "require_tls" {
       values   = ["false"]
     }
   }
+}
+
+output "bucket_name" {
+  value = aws_s3_bucket.terraform_state.id
 }
