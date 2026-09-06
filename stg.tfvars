@@ -2,7 +2,7 @@ project_name = "grant-application"
 
 environment = "stg"
 
-vpc_cidr = "10.2.0.0/16"
+vpc_cidr = "10.1.0.0/16"
 
 application_port = 8080
 
