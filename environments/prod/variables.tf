@@ -13,3 +13,8 @@ variable "frontend_bucket_force_destroy" {
   type    = bool
   default = false
 }
+
+variable "enable_paid_resources" {
+  type    = bool
+  default = false
+}

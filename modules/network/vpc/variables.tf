@@ -27,3 +27,7 @@ variable "application_port" {
   description = "Application port"
   type        = number
 }
+
+variable "enable_paid_resources" {
+  type = bool
+}

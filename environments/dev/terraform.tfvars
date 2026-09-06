@@ -10,3 +10,8 @@ availability_zones = [
 
 application_port = 8080
 domain_name      = "dev.grant-application.example.com"
+
+//コストがかかるサービスのon/off切り替え
+enable_paid_resources = false
+
+

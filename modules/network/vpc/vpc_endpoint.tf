@@ -2,6 +2,7 @@ data "aws_region" "current" {}
 
 # ECR API
 resource "aws_vpc_endpoint" "ecr_api" {
+  count = var.enable_paid_resources ? 1 : 0
   vpc_id              = aws_vpc.main.id
   service_name        = "com.amazonaws.${data.aws_region.current.region}.ecr.api"
   vpc_endpoint_type   = "Interface"
@@ -24,6 +25,7 @@ resource "aws_vpc_endpoint" "ecr_api" {
 
 # ECR Docker
 resource "aws_vpc_endpoint" "ecr_dkr" {
+  count = var.enable_paid_resources ? 1 : 0
   vpc_id              = aws_vpc.main.id
   service_name        = "com.amazonaws.${data.aws_region.current.region}.ecr.dkr"
   vpc_endpoint_type   = "Interface"
