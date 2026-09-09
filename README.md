@@ -1,4 +1,4 @@
-<img width="1458" height="622" alt="image" src="https://github.com/user-attachments/assets/4c664e05-e4dc-4fe0-9149-f3e67a67ab96" /># 医療法人補助金申請システム
+# 医療法人補助金申請システム
 
 ## 1. サービス概要
 
