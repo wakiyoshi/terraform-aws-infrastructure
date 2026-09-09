@@ -1,5 +1,5 @@
 resource "aws_cloudwatch_log_group" "ecs" {
-  name              = "/ecs/${var.project_name}/${var.environment}/app"
+  name = "/ecs/${var.project_name}/${var.environment}/app"
   //ログの保存時間
   retention_in_days = var.log_retention_days
 

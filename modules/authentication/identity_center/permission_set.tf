@@ -4,7 +4,7 @@ data "aws_ssoadmin_instances" "this" {}
 //共通の変数を定義
 locals {
   //oneでaws_ssoadmin_instancesのリストから1つだけ値を取得
-  instance_arn     = one(data.aws_ssoadmin_instances.this.arns)
+  instance_arn = one(data.aws_ssoadmin_instances.this.arns)
   identity_store_id = one(
     data.aws_ssoadmin_instances.this.identity_store_ids
   )

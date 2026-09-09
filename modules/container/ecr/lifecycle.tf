@@ -3,7 +3,7 @@ resource "aws_ecr_lifecycle_policy" "main" {
 
   policy = jsonencode({
     rules = [
-  
+
       {
         //ルール優先順位
         rulePriority = 1
@@ -22,7 +22,7 @@ resource "aws_ecr_lifecycle_policy" "main" {
       },
       {
         rulePriority = 2
-        description  = "Keep only the ${ var.keep_image_count }latest tagged images"
+        description  = "Keep only the ${var.keep_image_count}latest tagged images"
 
         selection = {
           tagStatus      = "tagged"
@@ -32,7 +32,7 @@ resource "aws_ecr_lifecycle_policy" "main" {
         }
 
         action = {
-        //基本はexpireしかない
+          //基本はexpireしかない
           type = "expire"
         }
       }

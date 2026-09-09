@@ -2,10 +2,10 @@ resource "aws_subnet" "public" {
   //count メタ引数　subnetをAZごとに作成
   count = length(var.availability_zones)
 
-  vpc_id                  = aws_vpc.main.id
+  vpc_id = aws_vpc.main.id
   // cidrsubnet(16.0.0.0/16, 8, 2)
-  cidr_block              = cidrsubnet(var.vpc_cidr, 8, count.index)
-  availability_zone       = var.availability_zones[count.index]
+  cidr_block        = cidrsubnet(var.vpc_cidr, 8, count.index)
+  availability_zone = var.availability_zones[count.index]
 
   tags = merge(
     var.common_tags,

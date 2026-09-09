@@ -5,7 +5,7 @@ resource "aws_ecs_service" "main" {
   //同じモジュール内だから直接参照可能
   task_definition = aws_ecs_task_definition.main.arn
   //常に起動しておくタスクの数
-  desired_count   = var.desired_count
+  desired_count = var.desired_count
 
   launch_type      = "FARGATE"
   platform_version = "LATEST"
@@ -14,7 +14,7 @@ resource "aws_ecs_service" "main" {
   // デプロイ中も desired_count の100%を維持する
   deployment_minimum_healthy_percent = 100
   // デプロイ中に desired_count の200%まで起動する
-  deployment_maximum_percent         = 200
+  deployment_maximum_percent = 200
 
   // 起動時ヘルスチェック失敗時にロールバック
   deployment_circuit_breaker {
@@ -43,7 +43,7 @@ resource "aws_ecs_service" "main" {
   //managed tagsを有効化することで自動でタグ付け
   enable_ecs_managed_tags = true
   // ECSサービスのタグ名をタスク名に引き継ぐ
-  propagate_tags          = "SERVICE"
+  propagate_tags = "SERVICE"
 
   //ポリシーがアタッチされる前にECS Serviceを作らないように
   depends_on = [

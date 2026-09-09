@@ -13,7 +13,7 @@ locals {
 
 resource "aws_s3_bucket" "this" {
   for_each = local.buckets
-    bucket = lower(
+  bucket = lower(
     "${var.project_name}-${var.environment}-${each.key}-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.region}"
   )
   force_destroy = each.value.force_destroy
@@ -25,7 +25,7 @@ resource "aws_s3_bucket" "this" {
 
 resource "aws_s3_bucket_public_access_block" "this" {
   for_each = local.buckets
-  bucket = aws_s3_bucket.this[each.key].id
+  bucket   = aws_s3_bucket.this[each.key].id
 
   block_public_acls       = true
   block_public_policy     = true
@@ -35,7 +35,7 @@ resource "aws_s3_bucket_public_access_block" "this" {
 
 resource "aws_s3_bucket_ownership_controls" "this" {
   for_each = local.buckets
-  bucket = aws_s3_bucket.this[each.key].id
+  bucket   = aws_s3_bucket.this[each.key].id
 
   rule {
     object_ownership = "BucketOwnerEnforced"
@@ -44,7 +44,7 @@ resource "aws_s3_bucket_ownership_controls" "this" {
 
 resource "aws_s3_bucket_versioning" "this" {
   for_each = local.buckets
-  bucket = aws_s3_bucket.this[each.key].id
+  bucket   = aws_s3_bucket.this[each.key].id
 
   versioning_configuration {
     status = "Enabled"
@@ -53,7 +53,7 @@ resource "aws_s3_bucket_versioning" "this" {
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
   for_each = local.buckets
-  bucket = aws_s3_bucket.this[each.key].id
+  bucket   = aws_s3_bucket.this[each.key].id
 
   rule {
     apply_server_side_encryption_by_default {

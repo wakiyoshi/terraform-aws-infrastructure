@@ -6,8 +6,8 @@ resource "aws_ecs_task_definition" "main" {
   requires_compatibilities = ["FARGATE"]
 
   // タスク自身がVPC内で1つのネットワークインターフェース（ENI）とプライベートIPアドレスを持つ
-  network_mode             = "awsvpc"
-  
+  network_mode = "awsvpc"
+
   // タスクのCPUとメモリの設定
   cpu    = var.task_cpu
   memory = var.task_memory

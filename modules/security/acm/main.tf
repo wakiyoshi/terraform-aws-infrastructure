@@ -17,7 +17,7 @@ resource "aws_acm_certificate" "main" {
 
 # ACMが要求するDNS検証用CNAMEレコードをRoute 53へ登録する　
 resource "aws_route53_record" "validation" {
- #複数ドメインを登録可能のため、サブドメインではない
+  #複数ドメインを登録可能のため、サブドメインではない
   for_each = {
     #ACMが作成したドメイン検証用のCNAMEレコードをRoute53に登録する
     for option in aws_acm_certificate.main.domain_validation_options :

@@ -9,7 +9,7 @@ availability_zones = [
 ]
 
 application_port = 8080
-domain_name      = "stg.grant-application.example.com"
+domain_name      = "stg.waki-cloud-lab.com"
 
 //コストがかかるサービスのon/off切り替え
 enable_paid_resources = false

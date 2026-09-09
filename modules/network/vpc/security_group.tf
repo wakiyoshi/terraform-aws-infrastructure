@@ -51,7 +51,7 @@ resource "aws_vpc_security_group_ingress_rule" "ecs_from_alb" {
   from_port   = 8080
   to_port     = 8080
 
-//予約変数：albのingressを通った通信のみ許可
+  //予約変数：albのingressを通った通信のみ許可
   referenced_security_group_id = aws_security_group.alb.id
 }
 
