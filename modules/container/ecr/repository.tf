@@ -1,5 +1,5 @@
 resource "aws_ecr_repository" "main" {
-  name = "${var.project_name}-${var.environment}-app"
+  name = "${var.project_name}-app"
 
   # 同じタグによるイメージの上書きを禁止する
   image_tag_mutability = "IMMUTABLE"
@@ -17,7 +17,8 @@ resource "aws_ecr_repository" "main" {
   tags = merge(
     var.common_tags,
     {
-      Name = "${var.project_name}-${var.environment}-app"
+      Name        = "${var.project_name}-app"
+      Environment = "shared"
     }
   )
 }

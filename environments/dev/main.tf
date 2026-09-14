@@ -1,15 +1,29 @@
 module "main" {
   source = "../../modules"
 
-  project_name                  = var.project_name
-  environment                   = var.environment
-  aws_region                    = var.aws_region
-  vpc_cidr                      = var.vpc_cidr
-  availability_zones            = var.availability_zones
-  application_port              = var.application_port
-  domain_name                   = var.domain_name
-  frontend_bucket_name          = var.frontend_bucket_name
-  frontend_bucket_force_destroy = var.frontend_bucket_force_destroy
-  common_tags                   = local.common_tags
-  enable_paid_resources         = var.enable_paid_resources
+  project_name                   = var.project_name
+  environment                    = var.environment
+  aws_region                     = var.aws_region
+  vpc_cidr                       = var.vpc_cidr
+  availability_zones             = var.availability_zones
+  application_port               = var.application_port
+  domain_name                    = var.domain_name
+  frontend_bucket_name           = var.frontend_bucket_name
+  frontend_bucket_force_destroy  = var.frontend_bucket_force_destroy
+  common_tags                    = local.common_tags
+  enable_paid_resources          = var.enable_paid_resources
+  keep_image_count               = var.keep_image_count
+  untagged_image_expiration_days = var.untagged_image_expiration_days
+  ssl_policy                     = var.ssl_policy
+  health_check_path              = var.health_check_path
+  image_tag                      = var.image_tag
+  container_name                 = var.container_name
+  task_cpu                       = var.task_cpu
+  task_memory                    = var.task_memory
+  desired_count                  = var.desired_count
+  autoscaling_min_capacity       = var.autoscaling_min_capacity
+  autoscaling_max_capacity       = var.autoscaling_max_capacity
+  autoscaling_cpu_target         = var.autoscaling_cpu_target
+  log_retention_days             = var.log_retention_days
+  container_environment          = var.container_environment
 }

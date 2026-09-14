@@ -5,14 +5,27 @@ resource "aws_lb_listener" "http" {
   port              = 80
   protocol          = "HTTP"
 
-  default_action {
-    type = "redirect"
+  dynamic "default_action" {
+    for_each = var.certificate_arn != null ? [1] : []
 
-    redirect {
-      port     = "443"
-      protocol = "HTTPS"
-      //301 Moved Permanently（恒久的リダイレクト）
-      status_code = "HTTP_301"
+    content {
+      type = "redirect"
+
+      redirect {
+        port     = "443"
+        protocol = "HTTPS"
+        //301 Moved Permanently（恒久的リダイレクト）
+        status_code = "HTTP_301"
+      }
+    }
+  }
+
+  dynamic "default_action" {
+    for_each = var.certificate_arn == null ? [1] : []
+
+    content {
+      type             = "forward"
+      target_group_arn = aws_lb_target_group.main.arn
     }
   }
 
@@ -26,6 +39,8 @@ resource "aws_lb_listener" "http" {
 
 # ALBでTLSを終端し、アプリケーションのTarget Groupへ転送する
 resource "aws_lb_listener" "https" {
+  count = var.certificate_arn != null ? 1 : 0
+
   load_balancer_arn = aws_lb.main.arn
   port              = 443
   protocol          = "HTTPS"

@@ -40,8 +40,9 @@ variable "public_subnet_ids" {
 
 // HTTPS（TLS）通信を成立させるために証明書が必須
 variable "certificate_arn" {
-  description = "ARN of the ACM certificate used by the HTTPS listener"
+  description = "ARN of the ACM certificate used by the HTTPS listener; null enables HTTP only"
   type        = string
+  default     = null
 }
 
 variable "ssl_policy" {

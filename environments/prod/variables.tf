@@ -18,3 +18,18 @@ variable "enable_paid_resources" {
   type    = bool
   default = false
 }
+
+variable "keep_image_count" { type = number }
+variable "untagged_image_expiration_days" { type = number }
+variable "ssl_policy" { type = string }
+variable "health_check_path" { type = string }
+variable "image_tag" { type = string }
+variable "container_name" { type = string }
+variable "task_cpu" { type = number }
+variable "task_memory" { type = number }
+variable "desired_count" { type = number }
+variable "autoscaling_min_capacity" { type = number }
+variable "autoscaling_max_capacity" { type = number }
+variable "autoscaling_cpu_target" { type = number }
+variable "log_retention_days" { type = number }
+variable "container_environment" { type = map(string) }
