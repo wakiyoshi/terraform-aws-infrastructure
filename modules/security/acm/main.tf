@@ -1,6 +1,7 @@
 resource "aws_acm_certificate" "main" {
-  domain_name       = var.domain_name
-  validation_method = "DNS"
+  domain_name               = var.domain_name
+  subject_alternative_names = var.subject_alternative_names
+  validation_method         = "DNS"
 
   tags = merge(
     var.common_tags,
@@ -17,23 +18,24 @@ resource "aws_acm_certificate" "main" {
 
 # ACMが要求するDNS検証用CNAMEレコードをRoute 53へ登録する　
 resource "aws_route53_record" "validation" {
-  #複数ドメインを登録可能のため、サブドメインではない
-  for_each = {
-    #ACMが作成したドメイン検証用のCNAMEレコードをRoute53に登録する
-    for option in aws_acm_certificate.main.domain_validation_options :
-    option.domain_name => {
-      name   = option.resource_record_name
-      type   = option.resource_record_type
-      record = option.resource_record_value
-    }
-  }
+  # Apexとワイルドカードは同じ検証レコードを使用するため、Apexの1件だけを登録する。
+  for_each = toset([var.domain_name])
 
   zone_id = var.route53_zone_id
-  name    = each.value.name
-  type    = each.value.type
+  name = one([
+    for option in aws_acm_certificate.main.domain_validation_options : option.resource_record_name
+    if option.domain_name == each.value
+  ])
+  type = one([
+    for option in aws_acm_certificate.main.domain_validation_options : option.resource_record_type
+    if option.domain_name == each.value
+  ])
   # 変更反映の速さ ↔ DNS問い合わせ効率のトレードオフ。
-  ttl     = 300
-  records = [each.value.record]
+  ttl = 300
+  records = [one([
+    for option in aws_acm_certificate.main.domain_validation_options : option.resource_record_value
+    if option.domain_name == each.value
+  ])]
 }
 
 # DNS検証が完了するまで待機する＝証明書が使えるようになるまで待機することでエラーを防ぐ

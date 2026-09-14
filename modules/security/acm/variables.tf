@@ -18,6 +18,12 @@ variable "domain_name" {
   }
 }
 
+variable "subject_alternative_names" {
+  description = "Additional FQDNs covered by the certificate"
+  type        = list(string)
+  default     = []
+}
+
 variable "route53_zone_id" {
   description = "ID of the public Route 53 hosted zone used for DNS validation"
   type        = string
