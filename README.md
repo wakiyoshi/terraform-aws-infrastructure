@@ -71,7 +71,7 @@
 | 証明書       | ACM                                                         |
 | データベース    | Aurora MySQL                                                |
 | ストレージ     | S3                                                          |
-| 認証        | Cognito / IAM Identity Center                               |
+| 認証        | IAM Identity Center                                         |
 | セキュリティ    | AWS WAF / GuardDuty / Security Hub / Inspector              |
 | 組織管理      | AWS Organizations                                           |
 | 機密情報・暗号化  | Secrets Manager / KMS                                       |
