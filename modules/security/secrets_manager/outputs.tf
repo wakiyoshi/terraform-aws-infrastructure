@@ -1,1 +1,4 @@
-# Outputs from the AWS Secrets Manager module will be defined here.
+output "secret_arn" {
+  description = "ARN of the protected RDS master-user secret"
+  value       = var.secret_arn
+}

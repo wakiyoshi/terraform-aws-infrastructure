@@ -121,6 +121,12 @@ variable "database_name" {
   default     = "app"
 }
 
+variable "kms_deletion_window_in_days" {
+  description = "Waiting period before a scheduled deletion of the RDS secrets KMS key"
+  type        = number
+  default     = 30
+}
+
 variable "database_master_username" {
   description = "Aurora master username; the password is managed by Secrets Manager"
   type        = string

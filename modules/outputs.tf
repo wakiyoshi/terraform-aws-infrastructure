@@ -38,3 +38,8 @@ output "rds_master_user_secret_arn" {
   value       = try(module.rds[0].master_user_secret_arn, null)
   sensitive   = true
 }
+
+output "rds_secrets_kms_key_arn" {
+  description = "ARN of the KMS key used by the RDS-managed secret"
+  value       = module.rds_secrets_kms.key_arn
+}

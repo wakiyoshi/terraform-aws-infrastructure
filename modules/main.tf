@@ -98,6 +98,17 @@ module "ecs" {
   container_environment    = var.container_environment
 }
 
+module "rds_secrets_kms" {
+  source = "./security/kms"
+
+  project_name            = var.project_name
+  environment             = var.environment
+  alias_suffix            = "rds-secrets"
+  description             = "KMS key for ${var.project_name}-${var.environment} RDS master credentials"
+  deletion_window_in_days = var.kms_deletion_window_in_days
+  common_tags             = var.common_tags
+}
+
 module "rds" {
   count  = var.enable_paid_resources ? 1 : 0
   source = "./database/rds"
@@ -109,6 +120,7 @@ module "rds" {
   common_tags                         = var.common_tags
   database_name                       = var.database_name
   master_username                     = var.database_master_username
+  master_user_secret_kms_key_id       = module.rds_secrets_kms.key_arn
   engine_version                      = var.aurora_engine_version
   instance_count                      = var.rds_instance_count
   serverless_min_capacity             = var.aurora_serverless_min_capacity
@@ -121,4 +133,11 @@ module "rds" {
   apply_immediately                   = var.rds_apply_immediately
   performance_insights_enabled        = var.rds_performance_insights_enabled
   iam_database_authentication_enabled = var.rds_iam_database_authentication_enabled
+}
+
+module "rds_secret_policy" {
+  count  = var.enable_paid_resources ? 1 : 0
+  source = "./security/secrets_manager"
+
+  secret_arn = module.rds[0].master_user_secret_arn
 }

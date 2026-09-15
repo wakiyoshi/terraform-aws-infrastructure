@@ -1,1 +1,4 @@
-# Input variables for the AWS Secrets Manager module will be defined here.
+variable "secret_arn" {
+  description = "ARN of the RDS-managed Secrets Manager secret"
+  type        = string
+}

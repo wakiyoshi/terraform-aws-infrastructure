@@ -41,6 +41,11 @@ variable "master_username" {
   default     = "dbadmin"
 }
 
+variable "master_user_secret_kms_key_id" {
+  description = "KMS key ARN used to encrypt the RDS-managed master-user secret"
+  type        = string
+}
+
 variable "engine_version" {
   description = "Aurora MySQL engine version"
   type        = string

@@ -23,3 +23,8 @@ output "rds_master_user_secret_arn" {
   value       = module.main.rds_master_user_secret_arn
   sensitive   = true
 }
+
+output "rds_secrets_kms_key_arn" {
+  description = "ARN of the KMS key used to encrypt the RDS master-user secret"
+  value       = module.main.rds_secrets_kms_key_arn
+}
