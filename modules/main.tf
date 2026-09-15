@@ -97,3 +97,28 @@ module "ecs" {
   log_retention_days       = var.log_retention_days
   container_environment    = var.container_environment
 }
+
+module "rds" {
+  count  = var.enable_paid_resources ? 1 : 0
+  source = "./database/rds"
+
+  project_name                        = var.project_name
+  environment                         = var.environment
+  private_subnet_ids                  = module.vpc.private_subnet_ids
+  rds_security_group_id               = module.vpc.rds_security_group_id
+  common_tags                         = var.common_tags
+  database_name                       = var.database_name
+  master_username                     = var.database_master_username
+  engine_version                      = var.aurora_engine_version
+  instance_count                      = var.rds_instance_count
+  serverless_min_capacity             = var.aurora_serverless_min_capacity
+  serverless_max_capacity             = var.aurora_serverless_max_capacity
+  backup_retention_period             = var.rds_backup_retention_period
+  preferred_backup_window             = var.rds_preferred_backup_window
+  preferred_maintenance_window        = var.rds_preferred_maintenance_window
+  deletion_protection                 = var.rds_deletion_protection
+  skip_final_snapshot                 = var.rds_skip_final_snapshot
+  apply_immediately                   = var.rds_apply_immediately
+  performance_insights_enabled        = var.rds_performance_insights_enabled
+  iam_database_authentication_enabled = var.rds_iam_database_authentication_enabled
+}

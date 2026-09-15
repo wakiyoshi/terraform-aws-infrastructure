@@ -28,3 +28,14 @@ autoscaling_max_capacity       = 6
 autoscaling_cpu_target         = 60
 log_retention_days             = 30
 container_environment          = {}
+
+// Aurora Serverless v2
+database_name                  = "app"
+database_master_username       = "dbadmin"
+aurora_engine_version          = "8.0.mysql_aurora.3.08.2"
+rds_instance_count             = 2
+aurora_serverless_min_capacity = 2
+aurora_serverless_max_capacity = 16
+rds_backup_retention_period    = 14
+rds_deletion_protection        = true
+rds_skip_final_snapshot        = false

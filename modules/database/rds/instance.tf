@@ -6,7 +6,7 @@ resource "aws_rds_cluster_instance" "main" {
 
   engine         = aws_rds_cluster.main.engine
   engine_version = aws_rds_cluster.main.engine_version
-  instance_class = var.instance_class
+  instance_class = "db.serverless"
 
   db_parameter_group_name = aws_db_parameter_group.main.name
   db_subnet_group_name    = aws_db_subnet_group.main.name

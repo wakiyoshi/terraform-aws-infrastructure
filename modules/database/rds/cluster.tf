@@ -15,6 +15,11 @@ resource "aws_rds_cluster" "main" {
   vpc_security_group_ids          = [var.rds_security_group_id]
   db_cluster_parameter_group_name = aws_rds_cluster_parameter_group.main.name
 
+  serverlessv2_scaling_configuration {
+    min_capacity = var.serverless_min_capacity
+    max_capacity = var.serverless_max_capacity
+  }
+
   backup_retention_period      = var.backup_retention_period
   preferred_backup_window      = var.preferred_backup_window
   preferred_maintenance_window = var.preferred_maintenance_window
@@ -31,6 +36,8 @@ resource "aws_rds_cluster" "main" {
     "${var.project_name}-${var.environment}-aurora-final"
   )
   apply_immediately = var.apply_immediately
+
+  iam_database_authentication_enabled = var.iam_database_authentication_enabled
 
   tags = merge(var.common_tags, {
     Name = "${var.project_name}-${var.environment}-aurora"

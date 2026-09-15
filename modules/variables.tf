@@ -114,3 +114,85 @@ variable "container_environment" {
   type    = map(string)
   default = {}
 }
+
+variable "database_name" {
+  description = "Name of the initial Aurora database"
+  type        = string
+  default     = "app"
+}
+
+variable "database_master_username" {
+  description = "Aurora master username; the password is managed by Secrets Manager"
+  type        = string
+  default     = "dbadmin"
+}
+
+variable "aurora_engine_version" {
+  description = "Aurora MySQL engine version"
+  type        = string
+  default     = "8.0.mysql_aurora.3.08.2"
+}
+
+variable "rds_instance_count" {
+  description = "Number of Aurora Serverless v2 instances"
+  type        = number
+  default     = 1
+}
+
+variable "aurora_serverless_min_capacity" {
+  description = "Minimum Aurora Serverless v2 capacity in ACUs"
+  type        = number
+}
+
+variable "aurora_serverless_max_capacity" {
+  description = "Maximum Aurora Serverless v2 capacity in ACUs"
+  type        = number
+}
+
+variable "rds_backup_retention_period" {
+  description = "Number of days to retain Aurora automated backups"
+  type        = number
+  default     = 7
+}
+
+variable "rds_preferred_backup_window" {
+  description = "Daily UTC backup window"
+  type        = string
+  default     = "18:00-19:00"
+}
+
+variable "rds_preferred_maintenance_window" {
+  description = "Weekly UTC maintenance window"
+  type        = string
+  default     = "sun:19:00-sun:20:00"
+}
+
+variable "rds_deletion_protection" {
+  description = "Whether Aurora deletion protection is enabled"
+  type        = bool
+  default     = true
+}
+
+variable "rds_skip_final_snapshot" {
+  description = "Whether to skip the final snapshot when deleting Aurora"
+  type        = bool
+  default     = false
+}
+
+variable "rds_apply_immediately" {
+  description = "Whether Aurora changes are applied immediately"
+  type        = bool
+  default     = false
+}
+
+variable "rds_performance_insights_enabled" {
+  description = "Whether Performance Insights is enabled"
+  type        = bool
+  default     = true
+}
+
+variable "rds_iam_database_authentication_enabled" {
+  description = "Whether IAM database authentication is enabled"
+  type        = bool
+  default     = true
+}
