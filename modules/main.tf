@@ -42,6 +42,18 @@ module "acm" {
   common_tags               = var.common_tags
 }
 
+module "ses" {
+  count  = var.environment == "prod" ? 1 : 0
+  source = "./ses"
+
+  project_name    = var.project_name
+  environment     = var.environment
+  aws_region      = var.aws_region
+  domain_name     = var.domain_name
+  route53_zone_id = module.route53[0].zone_id
+  common_tags     = var.common_tags
+}
+
 module "ecr" {
   count  = var.environment == "prod" ? 1 : 0
   source = "./container/ecr"
@@ -96,6 +108,36 @@ module "ecs" {
   autoscaling_cpu_target   = var.autoscaling_cpu_target
   log_retention_days       = var.log_retention_days
   container_environment    = var.container_environment
+}
+
+data "aws_iam_policy_document" "ecs_ses_send" {
+  count = var.environment == "prod" && var.enable_paid_resources ? 1 : 0
+
+  statement {
+    sid    = "SendEmailFromSiteDomain"
+    effect = "Allow"
+
+    actions = [
+      "ses:SendEmail",
+      "ses:SendRawEmail",
+    ]
+
+    resources = [module.ses[0].identity_arn]
+
+    condition {
+      test     = "StringLike"
+      variable = "ses:FromAddress"
+      values   = ["*@${var.domain_name}"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy" "ecs_ses_send" {
+  count = var.environment == "prod" && var.enable_paid_resources ? 1 : 0
+
+  name   = "${var.project_name}-${var.environment}-ses-send"
+  role   = module.ecs[0].task_role_name
+  policy = data.aws_iam_policy_document.ecs_ses_send[0].json
 }
 
 module "rds_secrets_kms" {

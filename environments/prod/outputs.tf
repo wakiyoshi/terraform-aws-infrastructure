@@ -13,6 +13,26 @@ output "acm_certificate_arn" {
   value       = module.main.acm_certificate_arn
 }
 
+output "ses_identity_arn" {
+  description = "ARN of the SES domain identity"
+  value       = module.main.ses_identity_arn
+}
+
+output "ses_domain_name" {
+  description = "Authenticated SES sending domain"
+  value       = module.main.ses_domain_name
+}
+
+output "ses_mail_from_domain" {
+  description = "Custom SES MAIL FROM domain"
+  value       = module.main.ses_mail_from_domain
+}
+
+output "ses_configuration_set_name" {
+  description = "Default SES configuration set name"
+  value       = module.main.ses_configuration_set_name
+}
+
 output "rds_cluster_id" {
   description = "Aurora cluster ID"
   value       = module.main.rds_cluster_id

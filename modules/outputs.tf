@@ -13,6 +13,26 @@ output "acm_certificate_arn" {
   value       = try(module.acm[0].certificate_arn, null)
 }
 
+output "ses_identity_arn" {
+  description = "ARN of the prod SES domain identity"
+  value       = try(module.ses[0].identity_arn, null)
+}
+
+output "ses_domain_name" {
+  description = "Authenticated prod SES sending domain"
+  value       = try(module.ses[0].domain_name, null)
+}
+
+output "ses_mail_from_domain" {
+  description = "Custom prod SES MAIL FROM domain"
+  value       = try(module.ses[0].mail_from_domain, null)
+}
+
+output "ses_configuration_set_name" {
+  description = "Default prod SES configuration set name"
+  value       = try(module.ses[0].configuration_set_name, null)
+}
+
 output "rds_cluster_id" {
   description = "Aurora cluster ID; null when paid resources are disabled"
   value       = try(module.rds[0].cluster_id, null)
