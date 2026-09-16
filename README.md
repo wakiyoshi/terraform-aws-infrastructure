@@ -59,8 +59,9 @@
 ## 2. システム構成
 
 ### 2.1 システム構成図
+<img width="2281" height="1401" alt="aws_ecs_fargate_architecture" src="https://github.com/user-attachments/assets/66ada882-1644-4508-a01a-6ac9203169d7" />
 
-> **TODO:** システム構成図を挿入
+
 
 ### 2.2 主な構成
 
