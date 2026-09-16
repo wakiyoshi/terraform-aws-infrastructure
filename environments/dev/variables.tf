@@ -47,3 +47,9 @@ variable "cloudwatch_alarm_actions" {
   type        = list(string)
   default     = []
 }
+
+variable "config_include_global_resource_types" {
+  description = "Record legacy global IAM resources; enable in only one supported Region per account"
+  type        = bool
+  default     = false
+}

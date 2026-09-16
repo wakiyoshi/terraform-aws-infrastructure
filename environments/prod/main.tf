@@ -6,6 +6,8 @@ module "main" {
     aws.us_east_1 = aws.us_east_1
   }
 
+  config_include_global_resource_types = var.config_include_global_resource_types
+
   project_name                   = var.project_name
   environment                    = var.environment
   aws_region                     = var.aws_region

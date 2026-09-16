@@ -270,7 +270,6 @@ module "rds_secret_policy" {
 }
 
 module "cloudwatch" {
-  count  = var.enable_paid_resources ? 1 : 0
   source = "./monitoring/cloudwatch"
 
   project_name            = var.project_name
@@ -282,4 +281,18 @@ module "cloudwatch" {
   target_group_arn_suffix = module.alb[0].target_group_arn_suffix
   rds_cluster_id          = module.rds[0].cluster_id
   alarm_actions           = var.cloudwatch_alarm_actions
+}
+
+module "security_baseline" {
+  source = "./security/baseline"
+
+  project_name                  = var.project_name
+  environment                   = var.environment
+  common_tags                   = var.common_tags
+  include_global_resource_types = var.config_include_global_resource_types
+}
+
+moved {
+  from = module.security_baseline[0]
+  to   = module.security_baseline
 }

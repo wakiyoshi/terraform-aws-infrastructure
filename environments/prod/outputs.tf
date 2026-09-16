@@ -82,3 +82,11 @@ output "rds_secrets_kms_key_arn" {
 output "cloudwatch_alarm_arns" {
   value = module.main.cloudwatch_alarm_arns
 }
+
+output "config_recorder_name" {
+  value = module.main.config_recorder_name
+}
+
+output "config_bucket_name" {
+  value = module.main.config_bucket_name
+}

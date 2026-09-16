@@ -83,3 +83,11 @@ output "cloudwatch_alarm_arns" {
   description = "CloudWatch alarm ARNs; empty when paid resources are disabled"
   value       = try(module.cloudwatch[0].alarm_arns, {})
 }
+
+output "config_recorder_name" {
+  value = module.security_baseline.config_recorder_name
+}
+
+output "config_bucket_name" {
+  value = module.security_baseline.config_bucket_name
+}
