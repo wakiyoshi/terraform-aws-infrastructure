@@ -4,10 +4,8 @@ resource "aws_ecr_repository" "main" {
   # 同じタグによるイメージの上書きを禁止する
   image_tag_mutability = "IMMUTABLE"
 
-  # イメージをpushしたタイミングで脆弱性スキャンを実行する
-  image_scanning_configuration {
-    scan_on_push = true
-  }
+  # Inspector による push 時の拡張スキャンは security/baseline で
+  # レジストリ単位に設定する。
 
   # ECRに保存するイメージを暗号化する、KMSの選択肢もある
   encryption_configuration {

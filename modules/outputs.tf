@@ -101,3 +101,15 @@ output "cloudtrail_bucket_name" {
   description = "CloudTrail log storage bucket"
   value       = module.cloudtrail.bucket_name
 }
+
+output "guardduty_detector_id" {
+  value = module.security_baseline.guardduty_detector_id
+}
+
+output "securityhub_arn" {
+  value = module.security_baseline.securityhub_arn
+}
+
+output "ecr_scan_type" {
+  value = module.security_baseline.ecr_scan_type
+}

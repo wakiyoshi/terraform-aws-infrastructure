@@ -98,3 +98,15 @@ output "cloudtrail_arn" {
 output "cloudtrail_bucket_name" {
   value = module.main.cloudtrail_bucket_name
 }
+
+output "guardduty_detector_id" {
+  value = module.main.guardduty_detector_id
+}
+
+output "securityhub_arn" {
+  value = module.main.securityhub_arn
+}
+
+output "ecr_scan_type" {
+  value = module.main.ecr_scan_type
+}
