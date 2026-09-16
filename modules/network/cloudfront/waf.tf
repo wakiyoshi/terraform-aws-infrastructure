@@ -81,3 +81,33 @@ resource "aws_wafv2_web_acl" "main" {
     Name = "${var.project_name}-${var.environment}-cloudfront-waf"
   })
 }
+
+resource "aws_cloudwatch_log_group" "waf" {
+  provider = aws.us_east_1
+
+  name              = "aws-waf-logs-${var.project_name}-${var.environment}-cloudfront"
+  retention_in_days = var.waf_log_retention_days
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-cloudfront-waf-logs"
+  })
+}
+
+resource "aws_wafv2_web_acl_logging_configuration" "main" {
+  provider = aws.us_east_1
+
+  log_destination_configs = [aws_cloudwatch_log_group.waf.arn]
+  resource_arn            = aws_wafv2_web_acl.main.arn
+
+  redacted_fields {
+    single_header {
+      name = "authorization"
+    }
+  }
+
+  redacted_fields {
+    single_header {
+      name = "cookie"
+    }
+  }
+}

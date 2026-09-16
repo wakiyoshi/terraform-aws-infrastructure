@@ -65,6 +65,18 @@ variable "health_check_path" {
   default = "/health"
 }
 
+variable "cloudfront_backend_path_pattern" {
+  description = "CloudFront path pattern routed to the ALB"
+  type        = string
+  default     = "/api/*"
+}
+
+variable "cloudfront_price_class" {
+  description = "CloudFront edge-location price class"
+  type        = string
+  default     = "PriceClass_200"
+}
+
 variable "image_tag" {
   type    = string
   default = "latest"

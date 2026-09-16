@@ -13,6 +13,21 @@ output "acm_certificate_arn" {
   value       = module.main.acm_certificate_arn
 }
 
+output "cloudfront_distribution_id" {
+  description = "ID of the CloudFront distribution"
+  value       = module.main.cloudfront_distribution_id
+}
+
+output "cloudfront_domain_name" {
+  description = "CloudFront distribution domain name"
+  value       = module.main.cloudfront_domain_name
+}
+
+output "site_url" {
+  description = "Public site URL served by CloudFront"
+  value       = module.main.site_url
+}
+
 output "ses_identity_arn" {
   description = "ARN of the SES domain identity"
   value       = module.main.ses_identity_arn

@@ -15,6 +15,10 @@ data "aws_cloudfront_origin_request_policy" "all_viewer_except_host" {
   name = "Managed-AllViewerExceptHostHeader"
 }
 
+data "aws_cloudfront_response_headers_policy" "security_headers" {
+  name = "Managed-SecurityHeadersPolicy"
+}
+
 resource "aws_cloudfront_origin_access_control" "frontend" {
   name                              = "${var.project_name}-${var.environment}-frontend-oac"
   description                       = "OAC for the private frontend bucket"
@@ -31,6 +35,7 @@ resource "aws_cloudfront_distribution" "main" {
   price_class         = var.price_class
   http_version        = "http2and3"
   web_acl_id          = aws_wafv2_web_acl.main.arn
+  aliases             = var.aliases
 
   origin {
     domain_name              = var.frontend_bucket_regional_domain_name
@@ -38,36 +43,46 @@ resource "aws_cloudfront_distribution" "main" {
     origin_access_control_id = aws_cloudfront_origin_access_control.frontend.id
   }
 
-  origin {
-    domain_name = var.alb_origin_domain_name
-    origin_id   = local.backend_origin_id
+  dynamic "origin" {
+    for_each = var.enable_alb_origin ? [1] : []
 
-    custom_origin_config {
-      http_port              = 80
-      https_port             = 443
-      origin_protocol_policy = "https-only"
-      origin_ssl_protocols   = ["TLSv1.2"]
+    content {
+      domain_name = var.alb_origin_domain_name
+      origin_id   = local.backend_origin_id
+
+      custom_origin_config {
+        http_port              = 80
+        https_port             = 443
+        origin_protocol_policy = var.alb_origin_protocol_policy
+        origin_ssl_protocols   = ["TLSv1.2"]
+      }
     }
   }
 
   default_cache_behavior {
-    target_origin_id       = local.frontend_origin_id
-    viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
-    cached_methods         = ["GET", "HEAD", "OPTIONS"]
-    cache_policy_id        = data.aws_cloudfront_cache_policy.caching_optimized.id
-    compress               = true
+    target_origin_id           = local.frontend_origin_id
+    viewer_protocol_policy     = "redirect-to-https"
+    allowed_methods            = ["GET", "HEAD", "OPTIONS"]
+    cached_methods             = ["GET", "HEAD", "OPTIONS"]
+    cache_policy_id            = data.aws_cloudfront_cache_policy.caching_optimized.id
+    response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security_headers.id
+    compress                   = true
   }
 
-  ordered_cache_behavior {
-    path_pattern             = var.backend_path_pattern
-    target_origin_id         = local.backend_origin_id
-    viewer_protocol_policy   = "redirect-to-https"
-    allowed_methods          = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
-    cached_methods           = ["GET", "HEAD", "OPTIONS"]
-    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
-    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host.id
-    compress                 = true
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_alb_origin ? [1] : []
+
+    content {
+      path_pattern               = var.backend_path_pattern
+      target_origin_id           = local.backend_origin_id
+      viewer_protocol_policy     = "redirect-to-https"
+      allowed_methods            = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+      cached_methods             = ["GET", "HEAD", "OPTIONS"]
+      cache_policy_id            = data.aws_cloudfront_cache_policy.caching_disabled.id
+      origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer_except_host.id
+      response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security_headers.id
+      compress                   = true
+    }
   }
 
   restrictions {
@@ -77,8 +92,10 @@ resource "aws_cloudfront_distribution" "main" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
-    minimum_protocol_version       = "TLSv1.2_2021"
+    cloudfront_default_certificate = var.acm_certificate_arn == null
+    acm_certificate_arn            = var.acm_certificate_arn
+    ssl_support_method             = var.acm_certificate_arn == null ? null : "sni-only"
+    minimum_protocol_version       = var.acm_certificate_arn == null ? "TLSv1" : "TLSv1.2_2021"
   }
 
   tags = merge(var.common_tags, {

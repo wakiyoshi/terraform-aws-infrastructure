@@ -24,8 +24,40 @@ variable "frontend_bucket_regional_domain_name" {
 }
 
 variable "alb_origin_domain_name" {
-  description = "HTTPS domain name that resolves to the ALB and matches its certificate"
+  description = "Domain name of the ALB origin; null when the ALB is disabled"
   type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "enable_alb_origin" {
+  description = "Whether the ALB origin and backend cache behavior are enabled"
+  type        = bool
+  default     = false
+}
+
+variable "alb_origin_protocol_policy" {
+  description = "Protocol policy used between CloudFront and the ALB"
+  type        = string
+  default     = "https-only"
+
+  validation {
+    condition     = contains(["http-only", "https-only", "match-viewer"], var.alb_origin_protocol_policy)
+    error_message = "alb_origin_protocol_policy must be http-only, https-only, or match-viewer."
+  }
+}
+
+variable "aliases" {
+  description = "Alternate domain names served by the distribution"
+  type        = list(string)
+  default     = []
+}
+
+variable "acm_certificate_arn" {
+  description = "ARN of the us-east-1 ACM certificate used by CloudFront"
+  type        = string
+  default     = null
+  nullable    = true
 }
 
 variable "backend_path_pattern" {
@@ -38,6 +70,12 @@ variable "price_class" {
   description = "CloudFront price class"
   type        = string
   default     = "PriceClass_200"
+}
+
+variable "waf_log_retention_days" {
+  description = "CloudWatch Logs retention period for WAF logs"
+  type        = number
+  default     = 30
 }
 
 variable "common_tags" {

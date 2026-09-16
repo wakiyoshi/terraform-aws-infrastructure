@@ -1,3 +1,18 @@
+output "cloudfront_distribution_id" {
+  description = "ID of the CloudFront distribution"
+  value       = module.main.cloudfront_distribution_id
+}
+
+output "cloudfront_domain_name" {
+  description = "CloudFront distribution domain name"
+  value       = module.main.cloudfront_domain_name
+}
+
+output "site_url" {
+  description = "Public site URL served by CloudFront"
+  value       = module.main.site_url
+}
+
 output "rds_cluster_id" {
   description = "Aurora cluster ID"
   value       = module.main.rds_cluster_id

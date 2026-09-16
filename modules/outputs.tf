@@ -13,6 +13,21 @@ output "acm_certificate_arn" {
   value       = try(module.acm[0].certificate_arn, null)
 }
 
+output "cloudfront_distribution_id" {
+  description = "ID of the environment's CloudFront distribution"
+  value       = module.cloudfront.distribution_id
+}
+
+output "cloudfront_domain_name" {
+  description = "CloudFront distribution domain name"
+  value       = module.cloudfront.domain_name
+}
+
+output "site_url" {
+  description = "Public site URL served by CloudFront"
+  value       = var.environment == "prod" ? "https://${var.domain_name}" : "https://${module.cloudfront.domain_name}"
+}
+
 output "ses_identity_arn" {
   description = "ARN of the prod SES domain identity"
   value       = try(module.ses[0].identity_arn, null)

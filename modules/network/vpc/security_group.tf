@@ -1,4 +1,9 @@
 # ALB用SG
+data "aws_ec2_managed_prefix_list" "cloudfront_origin_facing" {
+  count = var.environment == "prod" ? 1 : 0
+  name  = "com.amazonaws.global.cloudfront.origin-facing"
+}
+
 resource "aws_security_group" "alb" {
   name        = "${var.project_name}-${var.environment}-alb-sg"
   description = "Security group for public ALB"
@@ -12,16 +17,19 @@ resource "aws_security_group" "alb" {
 # インターネット → ALB:443
 resource "aws_vpc_security_group_ingress_rule" "alb_https" {
   security_group_id = aws_security_group.alb.id
-  description       = "Allow HTTPS from the internet"
+  description       = var.environment == "prod" ? "Allow HTTPS from CloudFront" : "Allow HTTPS from the internet"
 
-  ip_protocol = "tcp"
-  from_port   = 443
-  to_port     = 443
-  cidr_ipv4   = "0.0.0.0/0"
+  ip_protocol    = "tcp"
+  from_port      = 443
+  to_port        = 443
+  cidr_ipv4      = var.environment == "prod" ? null : "0.0.0.0/0"
+  prefix_list_id = var.environment == "prod" ? data.aws_ec2_managed_prefix_list.cloudfront_origin_facing[0].id : null
 }
 
 # インターネット → ALB:80
 resource "aws_vpc_security_group_ingress_rule" "alb_http" {
+  count = var.environment == "prod" ? 0 : 1
+
   security_group_id = aws_security_group.alb.id
   description       = "Allow HTTP from the internet"
 

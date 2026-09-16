@@ -42,6 +42,21 @@ module "acm" {
   common_tags               = var.common_tags
 }
 
+module "cloudfront_acm" {
+  count  = var.environment == "prod" ? 1 : 0
+  source = "./security/acm"
+
+  providers = {
+    aws = aws.us_east_1
+  }
+
+  project_name    = var.project_name
+  environment     = var.environment
+  domain_name     = var.domain_name
+  route53_zone_id = module.route53[0].zone_id
+  common_tags     = var.common_tags
+}
+
 module "ses" {
   count  = var.environment == "prod" ? 1 : 0
   source = "./ses"
@@ -80,6 +95,76 @@ module "alb" {
   ssl_policy            = var.ssl_policy
   application_port      = var.application_port
   health_check_path     = var.health_check_path
+}
+
+resource "aws_route53_record" "alb_origin" {
+  count = var.environment == "prod" && var.enable_paid_resources ? 1 : 0
+
+  zone_id = module.route53[0].zone_id
+  name    = "origin.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = module.alb[0].dns_name
+    zone_id                = module.alb[0].zone_id
+    evaluate_target_health = true
+  }
+}
+
+module "cloudfront" {
+  source = "./network/cloudfront"
+
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
+
+  project_name                         = var.project_name
+  environment                          = var.environment
+  aliases                              = var.environment == "prod" ? [var.domain_name] : []
+  acm_certificate_arn                  = try(module.cloudfront_acm[0].certificate_arn, null)
+  frontend_bucket_id                   = module.s3.buckets["frontend"].id
+  frontend_bucket_arn                  = module.s3.buckets["frontend"].arn
+  frontend_bucket_regional_domain_name = module.s3.buckets["frontend"].bucket_regional_domain_name
+  enable_alb_origin                    = var.enable_paid_resources
+  alb_origin_domain_name = var.enable_paid_resources ? (
+    var.environment == "prod" ? "origin.${var.domain_name}" : try(module.alb[0].dns_name, null)
+  ) : null
+  alb_origin_protocol_policy = var.environment == "prod" ? "https-only" : "http-only"
+  backend_path_pattern       = var.cloudfront_backend_path_pattern
+  price_class                = var.cloudfront_price_class
+  waf_log_retention_days     = var.log_retention_days
+  common_tags                = var.common_tags
+
+  depends_on = [aws_route53_record.alb_origin]
+}
+
+resource "aws_route53_record" "cloudfront_ipv4" {
+  count = var.environment == "prod" ? 1 : 0
+
+  zone_id = module.route53[0].zone_id
+  name    = var.domain_name
+  type    = "A"
+
+  alias {
+    name                   = module.cloudfront.domain_name
+    zone_id                = module.cloudfront.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+resource "aws_route53_record" "cloudfront_ipv6" {
+  count = var.environment == "prod" ? 1 : 0
+
+  zone_id = module.route53[0].zone_id
+  name    = var.domain_name
+  type    = "AAAA"
+
+  alias {
+    name                   = module.cloudfront.domain_name
+    zone_id                = module.cloudfront.hosted_zone_id
+    evaluate_target_health = false
+  }
 }
 
 module "ecs" {
