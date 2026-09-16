@@ -55,3 +55,11 @@ output "config_recorder_name" {
 output "config_bucket_name" {
   value = module.main.config_bucket_name
 }
+
+output "cloudtrail_arn" {
+  value = module.main.cloudtrail_arn
+}
+
+output "cloudtrail_bucket_name" {
+  value = module.main.cloudtrail_bucket_name
+}

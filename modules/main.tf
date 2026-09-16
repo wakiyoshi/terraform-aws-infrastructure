@@ -296,3 +296,11 @@ moved {
   from = module.security_baseline[0]
   to   = module.security_baseline
 }
+
+module "cloudtrail" {
+  source = "./security/cloudtrail"
+
+  project_name = var.project_name
+  environment  = var.environment
+  common_tags  = var.common_tags
+}

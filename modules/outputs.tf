@@ -91,3 +91,13 @@ output "config_recorder_name" {
 output "config_bucket_name" {
   value = module.security_baseline.config_bucket_name
 }
+
+output "cloudtrail_arn" {
+  description = "ARN of the multi-Region CloudTrail trail"
+  value       = module.cloudtrail.trail_arn
+}
+
+output "cloudtrail_bucket_name" {
+  description = "CloudTrail log storage bucket"
+  value       = module.cloudtrail.bucket_name
+}
