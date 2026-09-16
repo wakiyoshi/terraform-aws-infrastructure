@@ -42,3 +42,9 @@ variable "aurora_serverless_max_capacity" { type = number }
 variable "rds_backup_retention_period" { type = number }
 variable "rds_deletion_protection" { type = bool }
 variable "rds_skip_final_snapshot" { type = bool }
+
+variable "cloudwatch_alarm_actions" {
+  description = "SNS topic ARNs in the same Region for CloudWatch alarm and recovery notifications; empty disables notifications"
+  type        = list(string)
+  default     = []
+}

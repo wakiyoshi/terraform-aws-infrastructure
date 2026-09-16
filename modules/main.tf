@@ -268,3 +268,18 @@ module "rds_secret_policy" {
 
   secret_arn = module.rds[0].master_user_secret_arn
 }
+
+module "cloudwatch" {
+  count  = var.enable_paid_resources ? 1 : 0
+  source = "./monitoring/cloudwatch"
+
+  project_name            = var.project_name
+  environment             = var.environment
+  common_tags             = var.common_tags
+  ecs_cluster_name        = module.ecs[0].cluster_name
+  ecs_service_name        = module.ecs[0].service_name
+  alb_arn_suffix          = module.alb[0].arn_suffix
+  target_group_arn_suffix = module.alb[0].target_group_arn_suffix
+  rds_cluster_id          = module.rds[0].cluster_id
+  alarm_actions           = var.cloudwatch_alarm_actions
+}

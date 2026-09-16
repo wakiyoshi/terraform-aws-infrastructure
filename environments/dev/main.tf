@@ -29,6 +29,7 @@ module "main" {
   autoscaling_min_capacity       = var.autoscaling_min_capacity
   autoscaling_max_capacity       = var.autoscaling_max_capacity
   autoscaling_cpu_target         = var.autoscaling_cpu_target
+  cloudwatch_alarm_actions       = var.cloudwatch_alarm_actions
   log_retention_days             = var.log_retention_days
   container_environment          = var.container_environment
   database_name                  = var.database_name

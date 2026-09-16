@@ -214,3 +214,9 @@ variable "rds_iam_database_authentication_enabled" {
   type        = bool
   default     = true
 }
+
+variable "cloudwatch_alarm_actions" {
+  description = "SNS topic ARNs in the same Region for CloudWatch alarm and recovery notifications; empty disables notifications"
+  type        = list(string)
+  default     = []
+}

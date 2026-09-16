@@ -43,3 +43,7 @@ output "rds_secrets_kms_key_arn" {
   description = "ARN of the KMS key used to encrypt the RDS master-user secret"
   value       = module.main.rds_secrets_kms_key_arn
 }
+
+output "cloudwatch_alarm_arns" {
+  value = module.main.cloudwatch_alarm_arns
+}

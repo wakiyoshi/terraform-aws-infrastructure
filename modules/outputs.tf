@@ -78,3 +78,8 @@ output "rds_secrets_kms_key_arn" {
   description = "ARN of the KMS key used by the RDS-managed secret"
   value       = module.rds_secrets_kms.key_arn
 }
+
+output "cloudwatch_alarm_arns" {
+  description = "CloudWatch alarm ARNs; empty when paid resources are disabled"
+  value       = try(module.cloudwatch[0].alarm_arns, {})
+}

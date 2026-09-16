@@ -12,3 +12,11 @@ output "target_group_arn" {
   description = "ARN of the ALB target group"
   value       = aws_lb_target_group.main.arn
 }
+
+output "arn_suffix" {
+  value = aws_lb.main.arn_suffix
+}
+
+output "target_group_arn_suffix" {
+  value = aws_lb_target_group.main.arn_suffix
+}
