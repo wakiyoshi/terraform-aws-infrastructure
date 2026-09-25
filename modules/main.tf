@@ -231,6 +231,7 @@ resource "aws_iam_role_policy" "ecs_ses_send" {
 module "rds_secrets_kms" {
   source = "./security/kms"
 
+  # KMS Keyの削除予約によるSecret復号不能を避けるため、Aurora OFF時も保持する
   project_name            = var.project_name
   environment             = var.environment
   alias_suffix            = "rds-secrets"

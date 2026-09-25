@@ -16,6 +16,8 @@ resource "aws_security_group" "alb" {
 
 # インターネット → ALB:443
 resource "aws_vpc_security_group_ingress_rule" "alb_https" {
+  count = var.enable_paid_resources ? 1 : 0
+
   security_group_id = aws_security_group.alb.id
   description       = var.environment == "prod" ? "Allow HTTPS from CloudFront" : "Allow HTTPS from the internet"
 
@@ -28,7 +30,7 @@ resource "aws_vpc_security_group_ingress_rule" "alb_https" {
 
 # インターネット → ALB:80
 resource "aws_vpc_security_group_ingress_rule" "alb_http" {
-  count = var.environment == "prod" ? 0 : 1
+  count = var.enable_paid_resources && var.environment != "prod" ? 1 : 0
 
   security_group_id = aws_security_group.alb.id
   description       = "Allow HTTP from the internet"
@@ -41,6 +43,8 @@ resource "aws_vpc_security_group_ingress_rule" "alb_http" {
 
 # ALB → ECS:アプリケーションポート
 resource "aws_vpc_security_group_egress_rule" "alb_to_ecs" {
+  count = var.enable_paid_resources ? 1 : 0
+
   security_group_id = aws_security_group.alb.id
   description       = "Allow application traffic to ECS tasks"
 
@@ -63,6 +67,8 @@ resource "aws_security_group" "ecs" {
 
 # ALB → ECS:アプリケーションポート
 resource "aws_vpc_security_group_ingress_rule" "ecs_from_alb" {
+  count = var.enable_paid_resources ? 1 : 0
+
   security_group_id = aws_security_group.ecs.id
   description       = "Allow application traffic from ALB"
 
@@ -76,6 +82,8 @@ resource "aws_vpc_security_group_ingress_rule" "ecs_from_alb" {
 
 # ECS → NAT Gateway経由のHTTPS通信
 resource "aws_vpc_security_group_egress_rule" "ecs_https" {
+  count = var.enable_paid_resources ? 1 : 0
+
   security_group_id = aws_security_group.ecs.id
   description       = "Allow HTTPS through the NAT gateway"
 
@@ -98,6 +106,8 @@ resource "aws_security_group" "rds" {
 
 # ECS → RDS:3306
 resource "aws_vpc_security_group_egress_rule" "ecs_to_rds" {
+  count = var.enable_paid_resources ? 1 : 0
+
   security_group_id = aws_security_group.ecs.id
   description       = "Allow MySQL connections to RDS"
 
@@ -109,6 +119,8 @@ resource "aws_vpc_security_group_egress_rule" "ecs_to_rds" {
 
 # ECS → RDS:3306
 resource "aws_vpc_security_group_ingress_rule" "rds_from_ecs" {
+  count = var.enable_paid_resources ? 1 : 0
+
   security_group_id = aws_security_group.rds.id
   description       = "Allow MySQL connections from ECS"
 

@@ -121,6 +121,20 @@
 
 ※ 検証環境では、課金額を抑えるため、常時稼働が不要なリソースは検証時のみ起動・作成する。
 
+`enable_paid_resources`で同時にON/OFFする対象は次のとおり。
+
+* ALB、Listener、Target Group
+* ECS Cluster、Service、Task Definition、IAM Role、Log Group
+* Aurora Cluster、Instance、Subnet/Parameter Group、RDS管理Secret Policy
+* NAT Gateway、EIP、Private Subnetのデフォルトルート
+* ALB/ECS/Aurora間のSecurity Groupルール
+* ECS、ALB、AuroraのCloudWatch Alarm
+* CloudFrontのALB originとbackend behavior
+* PRODのALB origin DNS recordとECS用SES Policy
+
+ECR、S3 Gateway Endpoint、CloudFrontフロントエンド、S3、監査基盤は常設する。
+Aurora管理Secret用のKMS Keyは、削除予約による復号不能を避けるためOFF時も保持する。
+
 その他費用としてドメインの取得費用 初年度無料
 取得ドメイン：
 waki-cloud-lab.com
