@@ -101,7 +101,7 @@
 | Aurora MySQL |     - |
 | ECS Fargate  |     - |
 | ALB          |     - |
-| VPC Endpoint |     - |
+| NAT Gateway  |     - |
 | AWS WAF      |     - |
 | その他          |     - |
 | **合計**       | **-** |
@@ -113,11 +113,11 @@
 | サービス                 |           月額概算 | 算出条件                                                                   |
 | -------------------- | -------------: | ---------------------------------------------------------------------- |
 | Aurora Serverless v2 |          $3.70 | Aurora MySQL / Standard / On-Demand / 1 ACU / Storage 1GB / Backup 0GB |
-| VPC Endpoint         |          $6.40 | Interface Endpoint × 4 / 2 ENI / 月730時間を基準に利用時間を按分                     |
+| NAT Gateway          |        要再計算 | NAT Gateway × 1 / 利用時間とデータ処理量に応じて課金                                  |
 | AWS WAF              |          $6.60 | Web ACL × 1 / Rule × 1 / Rule Groupなし                                  |
 | ECS Fargate          |          $1.88 | Linux x86 / 2タスク / 日 / 1タスク120分 / Ephemeral Storage 20GB               |
 | ALB                  |          $1.48 | ALB × 1 / 1日平均約2時間 / 不使用時は削除                                           |
-| **合計**               | **$20.06 / 月** |                                                                        |
+| **合計**               |        **要再計算** |                                                                        |
 
 ※ 検証環境では、課金額を抑えるため、常時稼働が不要なリソースは検証時のみ起動・作成する。
 
@@ -182,17 +182,34 @@ terraform -chdir="environments/$TF_ENV/bootstrap" output -raw bucket_name
 
 ### 4.4 AWS環境構築
 
-Terraformを初期化する。
+最初に課金対象をOFFのまま適用し、ECSが参照するECR Repositoryを作成する。
 
 ```bash
+# environments/dev/terraform.tfvars の enable_paid_resources=false を維持
 terraform -chdir="environments/$TF_ENV" init
+terraform -chdir="environments/$TF_ENV" plan
+terraform -chdir="environments/$TF_ENV" apply
+terraform -chdir="environments/$TF_ENV" output -raw ecr_repository_name
 ```
 
-変更内容を確認する。
+アプリケーションリポジトリのDEV GitHub Environmentへ、出力されたRepository名を
+`ECR_REPOSITORY`として設定する。アプリケーションのBuild Workflowはmainへのpush時に、
+Git commit SHAをタグとしてイメージをbuild/pushする。
+
+push完了後、対象環境の`terraform.tfvars`にある`bootstrap_image_tag`を、そのGit commit SHAへ
+変更する。この値はTerraformがECS Serviceを初回作成するときだけ使用する。
+
+その後、`enable_paid_resources=true`へ変更して実AWSの変更内容を確認する。
 
 ```bash
 terraform -chdir="environments/$TF_ENV" plan
 ```
+
+planでは、NAT GatewayとPrivate Routeが作成対象であることを確認する。
+無料のS3 Gateway Endpointは、NATのデータ処理料金を抑えるため常設する。
+
+ECS Service作成後のイメージタグ・digest・Task Definition revisionはアプリケーション側の
+Deploy Workflowが管理する。Terraformはアプリ側のrevision変更を差分として扱わない。
 
 問題がなければAWS環境へ反映する。
 
@@ -214,7 +231,36 @@ terraform plan
 terraform apply
 ```
 
-### 4.5 State管理上の注意
+### 4.5 GitHub Actions用Terraform Role
+
+GitHub Actionsではアクセスキーを保存せず、Repository Variablesに設定したIAM Roleを
+OIDCで引き受ける。
+
+```text
+AWS_ROLE_ARN_DEV
+AWS_ACCOUNT_ID_DEV
+AWS_ROLE_ARN_STG
+AWS_ACCOUNT_ID_STG
+AWS_ROLE_ARN_PROD
+AWS_ACCOUNT_ID_PROD
+```
+
+DEV RoleのTrust Policyは、このリポジトリのPull Request、手動実行ブランチ、および
+GitHub Environment `DEV`からのOIDC subjectだけを許可する。
+
+Permission Policyには少なくとも次を含める。
+
+* DEV state bucket/prefixとlockfileに対するS3の読み書き
+* EC2/VPC、ECR、ECS、ELBv2、RDS、CloudWatch Logs/Alarm
+* S3、CloudFront、WAFv2、KMS、Secrets Manager
+* Config、CloudTrail、GuardDuty、Inspector2、Security Hub
+* Terraformが管理するDEV用Role/Policyに限定したIAM操作と`iam:PassRole`
+
+`aws sts get-caller-identity`でDEV Account IDを確認後、remote backendを使って
+`terraform init -reconfigure`と`terraform plan`を実行する。AccessDeniedが出た操作だけを
+Roleへ追加し、AdministratorAccessは使用しない。
+
+### 4.6 State管理上の注意
 
 Bootstrapで作成されるローカルStateは適切に保管すること。
 

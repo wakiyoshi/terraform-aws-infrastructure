@@ -13,6 +13,12 @@ output "site_url" {
   value       = module.main.site_url
 }
 
+output "ecr_repository_name" {
+  description = "Name of the DEV ECR repository"
+  value       = module.main.ecr_repository_name
+}
+
+
 output "rds_cluster_id" {
   description = "Aurora cluster ID"
   value       = module.main.rds_cluster_id

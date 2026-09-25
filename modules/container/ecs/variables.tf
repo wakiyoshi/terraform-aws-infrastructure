@@ -38,8 +38,8 @@ variable "ecr_repository_url" {
   type        = string
 }
 
-variable "image_tag" {
-  description = "Container image tag"
+variable "bootstrap_image_tag" {
+  description = "Container image tag used only for initial ECS service creation"
   type        = string
 }
 

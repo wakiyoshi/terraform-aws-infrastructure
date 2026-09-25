@@ -26,8 +26,9 @@ resource "aws_ecs_task_definition" "main" {
 
   container_definitions = jsonencode([
     {
-      name      = var.container_name
-      image     = "${var.ecr_repository_url}:${var.image_tag}"
+      name = var.container_name
+      # 継続的なイメージ更新はアプリ側Workflowがdigest指定で管理する
+      image     = "${var.ecr_repository_url}:${var.bootstrap_image_tag}"
       essential = true
 
       portMappings = [

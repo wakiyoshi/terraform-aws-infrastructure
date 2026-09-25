@@ -77,9 +77,10 @@ variable "cloudfront_price_class" {
   default     = "PriceClass_200"
 }
 
-variable "image_tag" {
-  type    = string
-  default = "latest"
+variable "bootstrap_image_tag" {
+  description = "ECR image tag used only when Terraform creates the initial ECS service"
+  type        = string
+  default     = "latest"
 }
 
 variable "container_name" {

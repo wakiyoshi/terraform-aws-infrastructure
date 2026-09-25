@@ -28,6 +28,16 @@ output "site_url" {
   value       = var.environment == "prod" ? "https://${var.domain_name}" : "https://${module.cloudfront.domain_name}"
 }
 
+output "ecr_repository_name" {
+  description = "Name of the ECR repository used by the environment"
+  value       = module.ecr.repository_name
+}
+
+output "ecr_repository_url" {
+  description = "URL of the ECR repository used by the environment"
+  value       = module.ecr.repository_url
+}
+
 output "ses_identity_arn" {
   description = "ARN of the prod SES domain identity"
   value       = try(module.ses[0].identity_arn, null)

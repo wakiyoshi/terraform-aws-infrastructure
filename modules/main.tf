@@ -1,5 +1,3 @@
-data "aws_caller_identity" "current" {}
-
 //vpc
 module "vpc" {
   source                = "./network/vpc"
@@ -70,13 +68,18 @@ module "ses" {
 }
 
 module "ecr" {
-  count  = var.environment == "prod" ? 1 : 0
   source = "./container/ecr"
 
   project_name                   = var.project_name
+  environment                    = var.environment
   common_tags                    = var.common_tags
   keep_image_count               = var.keep_image_count
   untagged_image_expiration_days = var.untagged_image_expiration_days
+}
+
+moved {
+  from = module.ecr[0]
+  to   = module.ecr
 }
 
 module "alb" {
@@ -171,18 +174,15 @@ module "ecs" {
   count  = var.enable_paid_resources ? 1 : 0
   source = "./container/ecs"
 
-  project_name          = var.project_name
-  environment           = var.environment
-  aws_region            = var.aws_region
-  common_tags           = var.common_tags
-  private_subnet_ids    = module.vpc.private_subnet_ids
-  ecs_security_group_id = module.vpc.ecs_security_group_id
-  target_group_arn      = module.alb[0].target_group_arn
-  ecr_repository_url = try(
-    module.ecr[0].repository_url,
-    "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/${var.project_name}-app"
-  )
-  image_tag                = var.image_tag
+  project_name             = var.project_name
+  environment              = var.environment
+  aws_region               = var.aws_region
+  common_tags              = var.common_tags
+  private_subnet_ids       = module.vpc.private_subnet_ids
+  ecs_security_group_id    = module.vpc.ecs_security_group_id
+  target_group_arn         = module.alb[0].target_group_arn
+  ecr_repository_url       = module.ecr.repository_url
+  bootstrap_image_tag      = var.bootstrap_image_tag
   container_name           = var.container_name
   application_port         = var.application_port
   task_cpu                 = var.task_cpu
@@ -193,6 +193,9 @@ module "ecs" {
   autoscaling_cpu_target   = var.autoscaling_cpu_target
   log_retention_days       = var.log_retention_days
   container_environment    = var.container_environment
+
+  # NAT GatewayとPrivate Routeの作成完了後にServiceを起動する
+  depends_on = [module.vpc]
 }
 
 data "aws_iam_policy_document" "ecs_ses_send" {
@@ -270,6 +273,7 @@ module "rds_secret_policy" {
 }
 
 module "cloudwatch" {
+  count  = var.enable_paid_resources ? 1 : 0
   source = "./monitoring/cloudwatch"
 
   project_name            = var.project_name

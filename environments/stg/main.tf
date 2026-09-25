@@ -23,7 +23,7 @@ module "main" {
   untagged_image_expiration_days = var.untagged_image_expiration_days
   ssl_policy                     = var.ssl_policy
   health_check_path              = var.health_check_path
-  image_tag                      = var.image_tag
+  bootstrap_image_tag            = var.bootstrap_image_tag
   container_name                 = var.container_name
   task_cpu                       = var.task_cpu
   task_memory                    = var.task_memory

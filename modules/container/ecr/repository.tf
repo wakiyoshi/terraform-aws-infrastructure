@@ -1,5 +1,6 @@
 resource "aws_ecr_repository" "main" {
-  name = "${var.project_name}-app"
+  # 既存PROD名は維持し、同一AWSアカウント内でもDEV/STGと衝突させない
+  name = var.environment == "prod" ? "${var.project_name}-app" : "${var.project_name}-${var.environment}-app"
 
   # 同じタグによるイメージの上書きを禁止する
   image_tag_mutability = "IMMUTABLE"
@@ -15,8 +16,8 @@ resource "aws_ecr_repository" "main" {
   tags = merge(
     var.common_tags,
     {
-      Name        = "${var.project_name}-app"
-      Environment = "shared"
+      Name        = var.environment == "prod" ? "${var.project_name}-app" : "${var.project_name}-${var.environment}-app"
+      Environment = var.environment
     }
   )
 }

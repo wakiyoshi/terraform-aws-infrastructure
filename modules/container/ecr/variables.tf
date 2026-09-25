@@ -3,6 +3,11 @@ variable "project_name" {
   type        = string
 }
 
+variable "environment" {
+  description = "Environment name"
+  type        = string
+}
+
 variable "common_tags" {
   description = "Common tags applied to resources"
   type        = map(string)

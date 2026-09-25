@@ -1,51 +1,6 @@
 data "aws_region" "current" {}
 
-# ECR API
-resource "aws_vpc_endpoint" "ecr_api" {
-  count               = var.enable_paid_resources ? 1 : 0
-  vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.${data.aws_region.current.region}.ecr.api"
-  vpc_endpoint_type   = "Interface"
-  private_dns_enabled = true
-
-  subnet_ids = aws_subnet.private[*].id
-
-  security_group_ids = [
-    aws_security_group.vpc_endpoint.id
-  ]
-
-  tags = merge(
-    var.common_tags,
-    {
-      Name = "${var.project_name}-${var.environment}-ecr-api-vpce"
-    }
-  )
-}
-
-
-# ECR Docker
-resource "aws_vpc_endpoint" "ecr_dkr" {
-  count               = var.enable_paid_resources ? 1 : 0
-  vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.${data.aws_region.current.region}.ecr.dkr"
-  vpc_endpoint_type   = "Interface"
-  private_dns_enabled = true
-
-  subnet_ids = aws_subnet.private[*].id
-
-  security_group_ids = [
-    aws_security_group.vpc_endpoint.id
-  ]
-
-  tags = merge(
-    var.common_tags,
-    {
-      Name = "${var.project_name}-${var.environment}-ecr-dkr-vpce"
-    }
-  )
-}
-
-# ECRのイメージレイヤーをS3から取得するためのGateway Endpoint
+# S3 Gateway Endpointは無料でNATのデータ処理料金も抑えられるため維持する
 resource "aws_vpc_endpoint" "s3" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.${data.aws_region.current.region}.s3"
