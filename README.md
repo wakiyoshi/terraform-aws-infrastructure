@@ -176,6 +176,17 @@ aws sts get-caller-identity
 
 `aws sts get-caller-identity` の結果から、対象AWSアカウントで認証されていることを確認する。
 
+production / staging のアカウント情報は以下のとおり。
+
+| AWS アカウント名 | Terraform 環境 | アカウント ID | メールアドレス |
+| --- | --- | --- | --- |
+| production | `prod` | `587552118918` | `wakk12107+aws-production@gmail.com` |
+| staging | `stg` | `721563685066` | `wakk12107+aws-staging@gmail.com` |
+
+両環境の AWS provider（bootstrap を含む）は `allowed_account_ids` で実行先を制限する。実行時には対象アカウントの認証情報を使用する。
+GitHub Actions の Repository Variables は `AWS_ACCOUNT_ID_PROD=587552118918`、`AWS_ACCOUNT_ID_STG=721563685066` とし、`AWS_ROLE_ARN_PROD` / `AWS_ROLE_ARN_STG` にも対応するアカウントのロール ARN を設定する。
+
+
 ### 4.3 Bootstrap構築
 
 Terraform State保存用のS3バケットを作成する。

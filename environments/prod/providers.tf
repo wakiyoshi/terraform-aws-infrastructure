@@ -10,7 +10,8 @@ terraform {
 }
 
 provider "aws" {
-  region = var.aws_region
+  allowed_account_ids = ["587552118918"]
+  region              = var.aws_region
 
   default_tags {
     tags = local.common_tags
@@ -18,8 +19,9 @@ provider "aws" {
 }
 
 provider "aws" {
-  alias  = "us_east_1"
-  region = "us-east-1"
+  alias               = "us_east_1"
+  allowed_account_ids = ["587552118918"]
+  region              = "us-east-1"
 
   default_tags {
     tags = local.common_tags
