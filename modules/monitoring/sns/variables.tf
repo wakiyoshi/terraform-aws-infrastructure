@@ -1,1 +1,4 @@
-# Input variables for the Amazon SNS module will be defined here.
+variable "project_name" { type = string }
+variable "environment" { type = string }
+variable "common_tags" { type = map(string) }
+variable "email_addresses" { type = set(string) }

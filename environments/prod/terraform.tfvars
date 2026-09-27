@@ -39,3 +39,5 @@ aurora_serverless_max_capacity = 16
 rds_backup_retention_period    = 14
 rds_deletion_protection        = true
 rds_skip_final_snapshot        = false
+
+cloudwatch_alarm_email_addresses = ["wakk12107@gmail.com"]

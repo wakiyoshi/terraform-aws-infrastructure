@@ -273,6 +273,16 @@ module "rds_secret_policy" {
   secret_arn = module.rds[0].master_user_secret_arn
 }
 
+module "sns" {
+  count  = length(var.cloudwatch_alarm_email_addresses) > 0 ? 1 : 0
+  source = "./monitoring/sns"
+
+  project_name    = var.project_name
+  environment     = var.environment
+  common_tags     = var.common_tags
+  email_addresses = var.cloudwatch_alarm_email_addresses
+}
+
 module "cloudwatch" {
   count  = var.enable_paid_resources ? 1 : 0
   source = "./monitoring/cloudwatch"
@@ -285,7 +295,7 @@ module "cloudwatch" {
   alb_arn_suffix          = module.alb[0].arn_suffix
   target_group_arn_suffix = module.alb[0].target_group_arn_suffix
   rds_cluster_id          = module.rds[0].cluster_id
-  alarm_actions           = var.cloudwatch_alarm_actions
+  alarm_actions           = distinct(concat(var.cloudwatch_alarm_actions, module.sns[*].topic_arn))
 }
 
 module "security_baseline" {

@@ -292,3 +292,10 @@ Bootstrapで作成されるローカルStateは適切に保管すること。
 既存Stateが存在する環境でBackendを変更する場合は、別途Stateの移行作業が必要となる。
 
 > **注意:** 上記の構築コマンドのみでは、既存のルートStateは自動的に移行されない。
+
+### CloudWatch のメール通知
+
+dev / stg / prod の `cloudwatch_alarm_email_addresses` に `wakk12107@gmail.com` を設定している。各環境で SNS トピックとメール購読を作成し、CloudWatch の異常・復旧通知を送信する。既存の `cloudwatch_alarm_actions` には追加の SNS トピック ARN を指定できる。
+
+Terraform apply 後、各環境の SNS から届く確認メールの **Confirm subscription** を開いて購読を承認する。承認が完了するまで通知は届かない。
+SNS の設定は `enable_paid_resources` にかかわらず作成するが、CloudWatch アラームは `enable_paid_resources = true` の場合のみ作成する。現在は全環境で `false` のためアラーム通知は発生しない。

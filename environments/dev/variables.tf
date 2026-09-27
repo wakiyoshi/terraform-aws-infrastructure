@@ -43,7 +43,7 @@ variable "rds_deletion_protection" { type = bool }
 variable "rds_skip_final_snapshot" { type = bool }
 
 variable "cloudwatch_alarm_actions" {
-  description = "SNS topic ARNs in the same Region for CloudWatch alarm and recovery notifications; empty disables notifications"
+  description = "Additional SNS topic ARNs in the same Region for CloudWatch alarm and recovery notifications"
   type        = list(string)
   default     = []
 }
@@ -52,4 +52,10 @@ variable "config_include_global_resource_types" {
   description = "Record legacy global IAM resources; enable in only one supported Region per account"
   type        = bool
   default     = true
+}
+
+variable "cloudwatch_alarm_email_addresses" {
+  description = "Email recipients for CloudWatch alarm and recovery notifications; each subscription requires email confirmation"
+  type        = set(string)
+  default     = []
 }
