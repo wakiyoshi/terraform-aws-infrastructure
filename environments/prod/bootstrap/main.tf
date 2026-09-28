@@ -107,3 +107,28 @@ data "aws_iam_policy_document" "require_tls" {
 output "bucket_name" {
   value = aws_s3_bucket.terraform_state.id
 }
+
+module "github_actions_oidc" {
+  source = "../../../modules/bootstrap"
+
+  project_name                  = var.project_name
+  environment                   = var.environment
+  aws_region                    = var.aws_region
+  aws_account_id                = data.aws_caller_identity.current.account_id
+  terraform_github_repository   = "wakiyoshi/terraform-aws-infrastructure"
+  application_github_repository = "wakiyoshi/grant-application-app"
+}
+
+output "terraform_deploy_role_arn" {
+  description = "ARN used for this environment's Terraform GitHub Actions variable"
+  value       = module.github_actions_oidc.terraform_deploy_role_arn
+}
+
+output "application_deploy_role_arn" {
+  description = "ARN used for this environment's application GitHub Actions variable"
+  value       = module.github_actions_oidc.application_deploy_role_arn
+}
+
+output "github_oidc_provider_arn" {
+  value = module.github_actions_oidc.github_oidc_provider_arn
+}

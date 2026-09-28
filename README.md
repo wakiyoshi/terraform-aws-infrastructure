@@ -204,6 +204,16 @@ terraform -chdir="environments/$TF_ENV/bootstrap" apply
 terraform -chdir="environments/$TF_ENV/bootstrap" output -raw bucket_name
 ```
 
+BootstrapはGitHub ActionsのOIDC Providerと、Terraform/Application用の環境別Roleも作成する。
+
+```bash
+terraform -chdir="environments/$TF_ENV/bootstrap" output -raw terraform_deploy_role_arn
+terraform -chdir="environments/$TF_ENV/bootstrap" output -raw application_deploy_role_arn
+```
+
+前者をTerraformリポジトリの環境別 `AWS_ROLE_ARN_*`、後者をApplicationリポジトリの
+対応するGitHub Environment（`dev` / `stg` / `prod`）の `AWS_ROLE_ARN` に設定する。
+
 出力されたバケット名と、対象環境の `backend.tf` に設定している `bucket` が一致していることを確認する。
 
 ### 4.4 AWS環境構築
@@ -271,20 +281,25 @@ AWS_ROLE_ARN_PROD
 AWS_ACCOUNT_ID_PROD
 ```
 
-DEV RoleのTrust Policyは、このリポジトリのPull Request、手動実行ブランチ、および
-GitHub Environment `DEV`からのOIDC subjectだけを許可する。
+Terraform Role名は `terraform-gha-{環境名}-deploy-role` とする。Trust Policyは
+`wakiyoshi/terraform-aws-infrastructure` の `main` branchと、対応するGitHub Environment
+（`DEV` / `STG` / `PROD`）からのOIDC subjectだけを許可する。Pull Requestのsubjectは
+デプロイRoleを引き受けられないため、PR planには別途読み取り専用Roleが必要となる。
 
-Permission Policyには少なくとも次を含める。
+Terraform Roleには `PowerUserAccess` と、このプロジェクト・環境のRole
+（`grant-application-{環境名}-*`）だけを管理・PassRoleできるinline policyを付与する。
+`AdministratorAccess`は使用しない。
 
-* DEV state bucket/prefixとlockfileに対するS3の読み書き
-* EC2/VPC、ECR、ECS、ELBv2、RDS、CloudWatch Logs/Alarm
-* S3、CloudFront、WAFv2、KMS、Secrets Manager
-* Config、CloudTrail、GuardDuty、Inspector2、Security Hub
-* Terraformが管理するDEV用Role/Policyに限定したIAM操作と`iam:PassRole`
+Application Role名は `application-gha-{環境名}-deploy-role` とする。Trust Policyは
+`wakiyoshi/grant-application-app` の対応するGitHub Environment（`dev` / `stg` / `prod`）
+だけを許可する。Permission Policyは、対象環境のECR Repositoryへのpush/pull、ECS Service更新、
+Task Definition登録、migration Task実行、および対象ECS Task RoleのPassRoleに限定する。
 
 `aws sts get-caller-identity`でDEV Account IDを確認後、remote backendを使って
-`terraform init -reconfigure`と`terraform plan`を実行する。AccessDeniedが出た操作だけを
-Roleへ追加し、AdministratorAccessは使用しない。
+`terraform init -reconfigure`と`terraform plan`を実行する。
+
+Application Roleにはfrontend配信用のS3/CloudFront権限を含めていない。frontendも同じRoleで
+デプロイする場合は、対象bucket/distributionだけに限定した権限を別途追加する。
 
 ### 4.6 State管理上の注意
 
