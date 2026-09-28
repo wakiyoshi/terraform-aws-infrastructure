@@ -93,17 +93,19 @@
 
 **前提：常時稼働**
 
-> **TODO:** AWS Pricing Calculatorによる本番想定コストを記載
+| サービス                 |                  月額概算 | 算出条件                                                                         |
+| -------------------- | --------------------: | ---------------------------------------------------------------------------- |
+| Aurora Serverless v2 | $382.61（約57,400円） | Aurora MySQL / Standard / On-Demand / 平均4 ACU / Storage 20GB / Backup 20GB |
+| ECS Fargate          | $179.94（約27,000円） | Linux x86 / 平均4タスク / 1 vCPU・2GB / 24時間稼働 / Ephemeral Storage 20GB           |
+| ALB                  |  $20.66（約3,100円） | ALB × 1 / 24時間稼働 / LCU利用量を考慮                                                 |
+| Regional NAT Gateway | $91.76（約13,800円） | Regional NAT Gateway × 1 / 2AZ / 24時間稼働                                      |
+| **合計**               | **$674.97（約101,200円）** | **主要ワークロードサービスのみの本番想定概算（繁忙期考慮で多めに見積もっている）**                                                 |
 
-| サービス         |  月額概算 |
-| ------------ | ----: |
-| Aurora MySQL |     - |
-| ECS Fargate  |     - |
-| ALB          |     - |
-| NAT Gateway  |     - |
-| AWS WAF      |     - |
-| その他          |     - |
-| **合計**       | **-** |
+
+※ 1 USD = 150円で換算。年間では 約$8,099.64（約121.5万円）。
+※ CloudFront、WAF、S3、CloudWatch、Route 53、ECR、SES等は含まない。
+
+
 
 ### 3.2 検証用構成
 
@@ -112,7 +114,7 @@
 | サービス                 |           月額概算 | 算出条件                                                                   |
 | -------------------- | -------------: | ---------------------------------------------------------------------- |
 | Aurora Serverless v2 |          $3.70 | Aurora MySQL / Standard / On-Demand / 1 ACU / Storage 1GB / Backup 0GB |
-| NAT Gateway          |        要再計算 | NAT Gateway × 1 / 利用時間とデータ処理量に応じて課金                                  |
+| NAT Gateway          |        $3.82 | NAT Gateway × 1 / 一日2時間使用（検証時間以外は削除）                                  |
 | AWS WAF              |          $6.60 | Web ACL × 1 / Rule × 1 / Rule Groupなし                                  |
 | ECS Fargate          |          $1.88 | Linux x86 / 2タスク / 日 / 1タスク120分 / Ephemeral Storage 20GB               |
 | ALB                  |          $1.48 | ALB × 1 / 1日平均約2時間 / 不使用時は削除                                           |
