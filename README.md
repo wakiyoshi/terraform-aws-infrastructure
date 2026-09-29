@@ -164,16 +164,24 @@ environments/<env>/backend.tf
 
 ### 4.2 AWS認証
 
-環境名とAWS CLIプロファイルを設定する。
+環境名とAWS CLIプロファイルを設定する。DEV環境のプロファイル名は `dev-account` を使用する。
 
 ```bash
 # STG / PRODの場合は環境名とプロファイルを変更
 export TF_ENV=dev
 export AWS_PROFILE=dev-account
 
-aws login --profile "$AWS_PROFILE"
+aws sso login --profile "$AWS_PROFILE"
 aws sts get-caller-identity
 ```
+
+SSOプロファイルが未設定の場合は、初回のみ以下を実行し、案内に従ってSSOの設定を行ってからログインする。
+
+```bash
+aws configure sso --profile dev-account
+```
+
+`aws sso login` で開くブラウザで認証を完了する。セッションの有効期限が切れた場合も、同じコマンドで再ログインする。
 
 `aws sts get-caller-identity` の結果から、対象AWSアカウントで認証されていることを確認する。
 
