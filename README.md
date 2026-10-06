@@ -240,8 +240,10 @@ terraform -chdir="environments/$TF_ENV" output -raw ecr_repository_name
 `ECR_REPOSITORY`として設定する。アプリケーションのBuild Workflowはmainへのpush時に、
 Git commit SHAをタグとしてイメージをbuild/pushする。
 
-push完了後、対象環境の`terraform.tfvars`にある`bootstrap_image_tag`を、そのGit commit SHAへ
-変更する。この値はTerraformがECS Serviceを初回作成するときだけ使用する。
+push完了後、TerraformはECRでpush日時が最新のイメージを取得し、そのdigestを初期Task
+Definitionへ設定する。`latest`タグやイメージタグの手動設定は不要。
+`enable_paid_resources=false`の間はイメージを取得しないため、空のECR Repositoryも作成できる。
+ECSを有効にする前にイメージをpushしておくこと（イメージがない場合は読み取りが失敗する）。
 
 その後、`enable_paid_resources=true`へ変更して実AWSの変更内容を確認する。
 
@@ -254,6 +256,9 @@ planでは、NAT GatewayとPrivate Routeが作成対象であることを確認�
 
 ECS Service作成後のイメージタグ・digest・Task Definition revisionはアプリケーション側の
 Deploy Workflowが管理する。Terraformはアプリ側のrevision変更を差分として扱わない。
+最新イメージの取得は以降のplan/applyでも行われ、取得digestが変わるとTerraform管理のTask
+Definitionも更新されるが、既存Serviceの参照revisionは変更しない。
+Serviceを再作成する場合は、その時点で取得した最新イメージを使用する。
 
 問題がなければAWS環境へ反映する。
 

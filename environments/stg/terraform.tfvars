@@ -18,7 +18,6 @@ keep_image_count               = 10
 untagged_image_expiration_days = 7
 ssl_policy                     = "ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09"
 health_check_path              = "/health"
-bootstrap_image_tag            = "latest"
 container_name                 = "app"
 task_cpu                       = 512
 task_memory                    = 1024

@@ -170,6 +170,14 @@ resource "aws_route53_record" "cloudfront_ipv6" {
   }
 }
 
+# ECSを有効にした場合だけ、ECRの最新push済みイメージを取得する。
+data "aws_ecr_image" "bootstrap" {
+  count = var.enable_paid_resources ? 1 : 0
+
+  repository_name = module.ecr.repository_name
+  most_recent     = true
+}
+
 module "ecs" {
   count  = var.enable_paid_resources ? 1 : 0
   source = "./container/ecs"
@@ -182,7 +190,7 @@ module "ecs" {
   ecs_security_group_id    = module.vpc.ecs_security_group_id
   target_group_arn         = module.alb[0].target_group_arn
   ecr_repository_url       = module.ecr.repository_url
-  bootstrap_image_tag      = var.bootstrap_image_tag
+  bootstrap_image_digest   = data.aws_ecr_image.bootstrap[0].image_digest
   container_name           = var.container_name
   application_port         = var.application_port
   task_cpu                 = var.task_cpu

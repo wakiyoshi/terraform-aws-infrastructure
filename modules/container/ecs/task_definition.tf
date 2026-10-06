@@ -28,7 +28,7 @@ resource "aws_ecs_task_definition" "main" {
     {
       name = var.container_name
       # 継続的なイメージ更新はアプリ側Workflowがdigest指定で管理する
-      image     = "${var.ecr_repository_url}:${var.bootstrap_image_tag}"
+      image     = "${var.ecr_repository_url}@${var.bootstrap_image_digest}"
       essential = true
 
       portMappings = [
