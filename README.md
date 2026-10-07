@@ -56,13 +56,34 @@
 
 ---
 
-## 2. システム構成
+## 2. サービスの前提条件
 
-### 2.1 システム構成図
+| 項目 | 前提条件 |
+| --- | --- |
+| 対象地域 | 日本全国（国内のみ） |
+| 対象事業者 | 病院、診療所等の医療事業者 |
+| 登録事業者数 | 約120,000事業者 |
+| 登録ユーザー数 | 約300,000ユーザー |
+| 通常時デイリーアクティブユーザー（DAU） | 約30,000人 |
+| 繁忙期デイリーアクティブユーザー（DAU） | 約100,000人 |
+| 通常時同時接続数 | 約1,000人 |
+| ピーク時同時接続数 | 約10,000人 |
+| 通常時リクエスト数（RPS） | 50～100 RPS |
+| ピーク時リクエスト数（RPS） | 500～1,000 RPS |
+| 主な利用時間 | 平日 8:00～20:00 |
+| サービス提供時間 | 原則として24時間365日 |
+| アクセス集中時期 | 3月、6月、9月および12月の四半期末 |
+| 繁忙期アクセス量 | 通常時の5～10倍程度を想定 |
+
+---
+
+## 3. システム構成
+
+### 3.1 システム構成図
 <img width="2282" height="1401" alt="補助金申請システムaws構成図0927 drawio" src="https://github.com/user-attachments/assets/eb072670-c8d3-41d4-9181-76439d571d6a" />
 
 
-### 2.2 主な構成
+### 3.2 主な構成
 
 | 分類        | AWSサービス・技術                                                  |
 | --------- | ----------------------------------------------------------- |
@@ -85,11 +106,11 @@
 
 ---
 
-## 3. コスト概算
+## 4. コスト概算
 
 > **注意:** 以下は設計時点の概算値。実際の料金はリージョン、通信量、リクエスト数、稼働時間等によって変動する。
 
-### 3.1 本番想定構成(1環境)
+### 4.1 本番想定構成(1環境)
 
 **前提：常時稼働**
 
@@ -107,7 +128,7 @@
 
 
 
-### 3.2 検証用構成
+### 4.2 検証用構成
 
 **前提：1日平均2時間程度の利用**
 
@@ -141,9 +162,9 @@ Aurora管理Secret用のKMS Keyは、削除予約による復号不能を避け�
 waki-cloud-lab.com
 ---
 
-## 4. 初期構築手順
+## 5. 初期構築手順
 
-### 4.1 前提
+### 5.1 前提
 
 以下を事前に準備する。
 
@@ -162,7 +183,7 @@ environments/<env>/backend.tf
 
 以降のコマンドはリポジトリのルートディレクトリから実行する。
 
-### 4.2 AWS認証
+### 5.2 AWS認証
 
 環境名とAWS CLIプロファイルを設定する。DEV環境のプロファイル名は `dev-account` を使用する。
 
@@ -196,7 +217,7 @@ production / staging のアカウント情報は以下のとおり。
 GitHub Actions の Repository Variables は `AWS_ACCOUNT_ID_PROD=587552118918`、`AWS_ACCOUNT_ID_STG=721563685066` とし、`AWS_ROLE_ARN_PROD` / `AWS_ROLE_ARN_STG` にも対応するアカウントのロール ARN を設定する。
 
 
-### 4.3 Bootstrap構築
+### 5.3 Bootstrap構築
 
 Terraform State保存用のS3バケットを作成する。
 
@@ -224,7 +245,7 @@ terraform -chdir="environments/$TF_ENV/bootstrap" output -raw application_deploy
 
 出力されたバケット名と、対象環境の `backend.tf` に設定している `bucket` が一致していることを確認する。
 
-### 4.4 AWS環境構築
+### 5.4 AWS環境構築
 
 最初に課金対象をOFFのまま適用し、ECSが参照するECR Repositoryを作成する。
 
@@ -280,7 +301,7 @@ terraform plan
 terraform apply
 ```
 
-### 4.5 GitHub Actions用Terraform Role
+### 5.5 GitHub Actions用Terraform Role
 
 GitHub Actionsではアクセスキーを保存せず、Repository Variablesに設定したIAM Roleを
 OIDCで引き受ける。
@@ -314,7 +335,7 @@ Task Definition登録、migration Task実行、および対象ECS Task RoleのPa
 Application Roleにはfrontend配信用のS3/CloudFront権限を含めていない。frontendも同じRoleで
 デプロイする場合は、対象bucket/distributionだけに限定した権限を別途追加する。
 
-### 4.6 State管理上の注意
+### 5.6 State管理上の注意
 
 Bootstrapで作成されるローカルStateは適切に保管すること。
 
