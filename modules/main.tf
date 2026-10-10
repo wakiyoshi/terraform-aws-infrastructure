@@ -130,16 +130,15 @@ module "cloudfront" {
   frontend_bucket_arn                  = module.s3.buckets["frontend"].arn
   frontend_bucket_regional_domain_name = module.s3.buckets["frontend"].bucket_regional_domain_name
   enable_alb_origin                    = var.enable_paid_resources
+  # Reference the DNS resource directly so only the distribution waits for it.
   alb_origin_domain_name = var.enable_paid_resources ? (
-    var.environment == "prod" ? "origin.${var.domain_name}" : try(module.alb[0].dns_name, null)
+    var.environment == "prod" ? trimsuffix(aws_route53_record.alb_origin[0].fqdn, ".") : try(module.alb[0].dns_name, null)
   ) : null
   alb_origin_protocol_policy = var.environment == "prod" ? "https-only" : "http-only"
   backend_path_pattern       = var.cloudfront_backend_path_pattern
   price_class                = var.cloudfront_price_class
   waf_log_retention_days     = var.log_retention_days
   common_tags                = var.common_tags
-
-  depends_on = [aws_route53_record.alb_origin]
 }
 
 resource "aws_route53_record" "cloudfront_ipv4" {
@@ -200,7 +199,15 @@ module "ecs" {
   autoscaling_max_capacity = var.autoscaling_max_capacity
   autoscaling_cpu_target   = var.autoscaling_cpu_target
   log_retention_days       = var.log_retention_days
-  container_environment    = var.container_environment
+  container_environment = merge(var.container_environment, {
+    DB_CONNECTION = "mysql"
+    DB_HOST       = module.rds[0].endpoint
+    DB_PORT       = tostring(module.rds[0].port)
+    DB_DATABASE   = var.database_name
+  })
+  database_secret_arn  = module.rds[0].master_user_secret_arn
+  container_secrets    = var.container_secrets
+  database_kms_key_arn = module.rds_secrets_kms.key_arn
 
   # NAT GatewayとPrivate Routeの作成完了後にServiceを起動する
   depends_on = [module.vpc]

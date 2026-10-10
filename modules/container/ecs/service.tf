@@ -47,7 +47,8 @@ resource "aws_ecs_service" "main" {
 
   //ポリシーがアタッチされる前にECS Serviceを作らないように
   depends_on = [
-    aws_iam_role_policy_attachment.task_execution
+    aws_iam_role_policy_attachment.task_execution,
+    aws_iam_role_policy.database_secret
   ]
 
   tags = merge(
@@ -63,6 +64,8 @@ resource "aws_ecs_service" "main" {
     ignore_changes = [
       desired_count,
       task_definition,
+      # Preserve ECS Exec settings enabled by operations.
+      enable_execute_command,
     ]
   }
 }

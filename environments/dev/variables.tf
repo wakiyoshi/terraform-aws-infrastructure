@@ -31,6 +31,10 @@ variable "autoscaling_max_capacity" { type = number }
 variable "autoscaling_cpu_target" { type = number }
 variable "log_retention_days" { type = number }
 variable "container_environment" { type = map(string) }
+variable "container_secrets" {
+  type    = map(string)
+  default = {}
+}
 variable "database_name" { type = string }
 variable "database_master_username" { type = string }
 variable "aurora_engine_version" { type = string }

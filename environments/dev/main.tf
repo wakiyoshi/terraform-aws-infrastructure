@@ -34,13 +34,16 @@ module "main" {
   cloudwatch_alarm_email_addresses = var.cloudwatch_alarm_email_addresses
   log_retention_days               = var.log_retention_days
   container_environment            = var.container_environment
-  database_name                    = var.database_name
-  database_master_username         = var.database_master_username
-  aurora_engine_version            = var.aurora_engine_version
-  rds_instance_count               = var.rds_instance_count
-  aurora_serverless_min_capacity   = var.aurora_serverless_min_capacity
-  aurora_serverless_max_capacity   = var.aurora_serverless_max_capacity
-  rds_backup_retention_period      = var.rds_backup_retention_period
-  rds_deletion_protection          = var.rds_deletion_protection
-  rds_skip_final_snapshot          = var.rds_skip_final_snapshot
+  container_secrets = merge(var.container_secrets, {
+    APP_KEY = aws_secretsmanager_secret.app_key.arn
+  })
+  database_name                  = var.database_name
+  database_master_username       = var.database_master_username
+  aurora_engine_version          = var.aurora_engine_version
+  rds_instance_count             = var.rds_instance_count
+  aurora_serverless_min_capacity = var.aurora_serverless_min_capacity
+  aurora_serverless_max_capacity = var.aurora_serverless_max_capacity
+  rds_backup_retention_period    = var.rds_backup_retention_period
+  rds_deletion_protection        = var.rds_deletion_protection
+  rds_skip_final_snapshot        = var.rds_skip_final_snapshot
 }

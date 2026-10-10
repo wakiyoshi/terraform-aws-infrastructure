@@ -123,6 +123,12 @@ variable "container_environment" {
   default = {}
 }
 
+variable "container_secrets" {
+  description = "Environment variable names mapped to Secrets Manager valueFrom references"
+  type        = map(string)
+  default     = {}
+}
+
 variable "database_name" {
   description = "Name of the initial Aurora database"
   type        = string
