@@ -12,7 +12,7 @@ variable "delegated_name_servers" {
   type        = map(list(string))
   default     = {}
 
-// 不正な値を拒否
+  // 不正な値を拒否
   validation {
     condition = alltrue([
       for environment, servers in var.delegated_name_servers :
@@ -75,4 +75,23 @@ variable "cloudwatch_alarm_email_addresses" {
   description = "Email recipients for CloudWatch alarm and recovery notifications; each subscription requires email confirmation"
   type        = set(string)
   default     = []
+}
+
+variable "cloudfront_basic_auth" {
+  description = "Optional Basic auth credentials; supply outside committed tfvars"
+  type = object({
+    username = string
+    password = string
+  })
+  default   = null
+  sensitive = true
+
+  validation {
+    condition = var.cloudfront_basic_auth == null ? true : (
+      length(var.cloudfront_basic_auth.username) > 0 &&
+      !strcontains(var.cloudfront_basic_auth.username, ":") &&
+      length(var.cloudfront_basic_auth.password) > 0
+    )
+    error_message = "Use a nonempty username without colon, a nonempty password."
+  }
 }

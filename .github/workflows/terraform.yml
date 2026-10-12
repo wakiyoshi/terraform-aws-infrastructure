@@ -5,6 +5,7 @@ on:
     paths:
       - "**/*.tf"
       - "**/*.tfvars"
+      - "modules/network/cloudfront/*.js"
       - "**/.terraform.lock.hcl"
       - ".github/workflows/terraform.yml"
   workflow_dispatch:
@@ -37,6 +38,13 @@ env:
   AWS_ACCOUNT_ID: ${{ vars[format('AWS_ACCOUNT_ID_{0}', inputs.environment)] }}
 
 jobs:
+  cloudfront-function-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: CloudFront Functionの認証とパス処理を検証
+        run: node tests/cloudfront-basic-auth.cjs
+
   terraform-plan:
     if: github.event_name == 'pull_request'
     name: Terraform plan (${{ matrix.environment }})

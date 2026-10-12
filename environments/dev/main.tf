@@ -9,6 +9,7 @@ module "main" {
   config_include_global_resource_types = var.config_include_global_resource_types
 
   project_name                     = var.project_name
+  cloudfront_basic_auth            = var.cloudfront_basic_auth
   environment                      = var.environment
   aws_region                       = var.aws_region
   vpc_cidr                         = var.vpc_cidr

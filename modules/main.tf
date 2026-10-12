@@ -122,6 +122,7 @@ module "cloudfront" {
 
   project_name                         = var.project_name
   environment                          = var.environment
+  cloudfront_basic_auth                = var.cloudfront_basic_auth
   aliases                              = [var.domain_name]
   acm_certificate_arn                  = module.cloudfront_acm.certificate_arn
   frontend_bucket_id                   = module.s3.buckets["frontend"].id
