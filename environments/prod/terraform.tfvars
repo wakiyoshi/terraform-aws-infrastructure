@@ -40,3 +40,13 @@ rds_deletion_protection        = true
 rds_skip_final_snapshot        = false
 
 cloudwatch_alarm_email_addresses = ["wakk12107@gmail.com"]
+
+# DEV public hosted zone name servers
+delegated_name_servers = {
+  dev = [
+    "ns-1322.awsdns-37.org",
+    "ns-1774.awsdns-29.co.uk",
+    "ns-314.awsdns-39.com",
+    "ns-693.awsdns-22.net",
+  ]
+}
