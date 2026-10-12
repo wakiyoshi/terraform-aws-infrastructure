@@ -4,7 +4,7 @@ output "route53_zone_id" {
 }
 
 output "route53_name_servers" {
-  description = "Add these name servers as an NS record in the waki-cloud-lab.com parent zone"
+  description = "Configure these name servers at the waki-cloud-lab.com domain registrar"
   value       = module.main.route53_name_servers
 }
 

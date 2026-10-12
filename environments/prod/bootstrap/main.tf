@@ -30,7 +30,7 @@ variable "aws_region" { type = string }
 data "aws_caller_identity" "current" {}
 
 locals {
-  bucket_name = "${var.project_name}-${var.environment}-terraform-state-${data.aws_caller_identity.current.account_id}-${var.aws_region}"
+  bucket_name = "${var.project_name}-${var.environment}-tfstate-${data.aws_caller_identity.current.account_id}-${var.aws_region}"
 }
 
 resource "aws_s3_bucket" "terraform_state" {

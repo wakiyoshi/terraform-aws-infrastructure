@@ -19,7 +19,6 @@ module "s3" {
 }
 
 module "route53" {
-  count  = var.environment == "prod" ? 1 : 0
   source = "./network/route53"
 
   project_name = var.project_name
@@ -36,12 +35,11 @@ module "acm" {
   environment               = var.environment
   domain_name               = var.domain_name
   subject_alternative_names = ["*.${var.domain_name}"]
-  route53_zone_id           = module.route53[0].zone_id
+  route53_zone_id           = module.route53.zone_id
   common_tags               = var.common_tags
 }
 
 module "cloudfront_acm" {
-  count  = var.environment == "prod" ? 1 : 0
   source = "./security/acm"
 
   providers = {
@@ -51,7 +49,7 @@ module "cloudfront_acm" {
   project_name    = var.project_name
   environment     = var.environment
   domain_name     = var.domain_name
-  route53_zone_id = module.route53[0].zone_id
+  route53_zone_id = module.route53.zone_id
   common_tags     = var.common_tags
 }
 
@@ -63,7 +61,7 @@ module "ses" {
   environment     = var.environment
   aws_region      = var.aws_region
   domain_name     = var.domain_name
-  route53_zone_id = module.route53[0].zone_id
+  route53_zone_id = module.route53.zone_id
   common_tags     = var.common_tags
 }
 
@@ -103,7 +101,7 @@ module "alb" {
 resource "aws_route53_record" "alb_origin" {
   count = var.environment == "prod" && var.enable_paid_resources ? 1 : 0
 
-  zone_id = module.route53[0].zone_id
+  zone_id = module.route53.zone_id
   name    = "origin.${var.domain_name}"
   type    = "A"
 
@@ -124,8 +122,8 @@ module "cloudfront" {
 
   project_name                         = var.project_name
   environment                          = var.environment
-  aliases                              = var.environment == "prod" ? [var.domain_name] : []
-  acm_certificate_arn                  = try(module.cloudfront_acm[0].certificate_arn, null)
+  aliases                              = [var.domain_name]
+  acm_certificate_arn                  = module.cloudfront_acm.certificate_arn
   frontend_bucket_id                   = module.s3.buckets["frontend"].id
   frontend_bucket_arn                  = module.s3.buckets["frontend"].arn
   frontend_bucket_regional_domain_name = module.s3.buckets["frontend"].bucket_regional_domain_name
@@ -142,9 +140,7 @@ module "cloudfront" {
 }
 
 resource "aws_route53_record" "cloudfront_ipv4" {
-  count = var.environment == "prod" ? 1 : 0
-
-  zone_id = module.route53[0].zone_id
+  zone_id = module.route53.zone_id
   name    = var.domain_name
   type    = "A"
 
@@ -156,9 +152,7 @@ resource "aws_route53_record" "cloudfront_ipv4" {
 }
 
 resource "aws_route53_record" "cloudfront_ipv6" {
-  count = var.environment == "prod" ? 1 : 0
-
-  zone_id = module.route53[0].zone_id
+  zone_id = module.route53.zone_id
   name    = var.domain_name
   type    = "AAAA"
 

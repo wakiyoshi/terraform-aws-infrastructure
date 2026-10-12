@@ -1,11 +1,11 @@
 output "route53_zone_id" {
-  description = "ID of the prod public Route 53 hosted zone"
-  value       = try(module.route53[0].zone_id, null)
+  description = "ID of the environment public Route 53 hosted zone"
+  value       = module.route53.zone_id
 }
 
 output "route53_name_servers" {
-  description = "Name servers used to delegate the prod subdomain from its parent zone"
-  value       = try(module.route53[0].name_servers, [])
+  description = "Name servers for registrar configuration or parent-zone delegation"
+  value       = module.route53.name_servers
 }
 
 output "acm_certificate_arn" {
@@ -25,7 +25,7 @@ output "cloudfront_domain_name" {
 
 output "site_url" {
   description = "Public site URL served by CloudFront"
-  value       = var.environment == "prod" ? "https://${var.domain_name}" : "https://${module.cloudfront.domain_name}"
+  value       = "https://${var.domain_name}"
 }
 
 output "ecr_repository_name" {
