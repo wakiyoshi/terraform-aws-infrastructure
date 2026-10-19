@@ -28,7 +28,7 @@ module "route53" {
 }
 
 module "acm" {
-  count  = var.environment == "prod" ? 1 : 0
+  count  = var.environment == "prod" || var.enable_paid_resources ? 1 : 0
   source = "./security/acm"
 
   project_name              = var.project_name
@@ -99,7 +99,7 @@ module "alb" {
 }
 
 resource "aws_route53_record" "alb_origin" {
-  count = var.environment == "prod" && var.enable_paid_resources ? 1 : 0
+  count = var.enable_paid_resources ? 1 : 0
 
   zone_id = module.route53.zone_id
   name    = "origin.${var.domain_name}"
@@ -130,10 +130,8 @@ module "cloudfront" {
   frontend_bucket_regional_domain_name = module.s3.buckets["frontend"].bucket_regional_domain_name
   enable_alb_origin                    = var.enable_paid_resources
   # Reference the DNS resource directly so only the distribution waits for it.
-  alb_origin_domain_name = var.enable_paid_resources ? (
-    var.environment == "prod" ? trimsuffix(aws_route53_record.alb_origin[0].fqdn, ".") : try(module.alb[0].dns_name, null)
-  ) : null
-  alb_origin_protocol_policy = var.environment == "prod" ? "https-only" : "http-only"
+  alb_origin_domain_name     = var.enable_paid_resources ? trimsuffix(aws_route53_record.alb_origin[0].fqdn, ".") : null
+  alb_origin_protocol_policy = "https-only"
   backend_path_pattern       = var.cloudfront_backend_path_pattern
   price_class                = var.cloudfront_price_class
   waf_log_retention_days     = var.log_retention_days
