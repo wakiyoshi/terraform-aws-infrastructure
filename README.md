@@ -299,8 +299,6 @@ Serviceを再作成する場合は、その時点で取得した最新イメー�
 terraform -chdir="environments/$TF_ENV" apply
 ```
 
-`apply` 実行時は変更内容を確認したうえで `yes` を入力する。
-
 以降の構成変更についても、原則として以下の流れで実施する。
 
 ```text

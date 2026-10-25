@@ -64,7 +64,7 @@ variable "cloudwatch_alarm_email_addresses" {
 }
 
 variable "cloudfront_basic_auth" {
-  description = "Optional Basic auth credentials; supply outside committed tfvars"
+  description = "Required dev Basic auth credentials; supply in basic-auth.secrets.auto.tfvars or TF_VAR_cloudfront_basic_auth"
   type = object({
     username = string
     password = string
@@ -73,11 +73,11 @@ variable "cloudfront_basic_auth" {
   sensitive = true
 
   validation {
-    condition = var.cloudfront_basic_auth == null ? true : (
+    condition = var.cloudfront_basic_auth == null ? false : (
       length(var.cloudfront_basic_auth.username) > 0 &&
       !strcontains(var.cloudfront_basic_auth.username, ":") &&
       length(var.cloudfront_basic_auth.password) > 0
     )
-    error_message = "Use a nonempty username without colon, a nonempty password."
+    error_message = "Dev requires Basic auth. Set cloudfront_basic_auth with a nonempty username without colon and a nonempty password."
   }
 }

@@ -35,6 +35,9 @@ module "acm" {
   environment               = var.environment
   domain_name               = var.domain_name
   subject_alternative_names = ["*.${var.domain_name}"]
+  # 同一アカウント・ドメインの検証CNAMEはリージョン間で共通。管理元を一本化する。
+  create_validation_records = false
+  validation_record_fqdns   = module.cloudfront_acm.validation_record_fqdns
   route53_zone_id           = module.route53.zone_id
   common_tags               = var.common_tags
 }

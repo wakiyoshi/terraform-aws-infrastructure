@@ -7,3 +7,4 @@ crash.*.log
 
 # Local authentication inputs must not be committed.
 *.secrets.tfvars
+*.secrets.auto.tfvars

@@ -19,7 +19,7 @@ resource "aws_acm_certificate" "main" {
 # ACMが要求するDNS検証用CNAMEレコードをRoute 53へ登録する　
 resource "aws_route53_record" "validation" {
   # Apexとワイルドカードは同じ検証レコードを使用するため、Apexの1件だけを登録する。
-  for_each = toset([var.domain_name])
+  for_each = var.create_validation_records ? toset([var.domain_name]) : toset([])
 
   zone_id = var.route53_zone_id
   name = one([
@@ -42,7 +42,7 @@ resource "aws_route53_record" "validation" {
 resource "aws_acm_certificate_validation" "main" {
   certificate_arn = aws_acm_certificate.main.arn
 
-  validation_record_fqdns = [
+  validation_record_fqdns = concat(var.validation_record_fqdns, [
     for record in aws_route53_record.validation : record.fqdn
-  ]
+  ])
 }

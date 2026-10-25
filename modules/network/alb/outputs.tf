@@ -11,6 +11,8 @@ output "zone_id" {
 output "target_group_arn" {
   description = "ARN of the ALB target group"
   value       = aws_lb_target_group.main.arn
+  # ECS CreateServiceには、Target GroupとALBの関連付け完了が必要。
+  depends_on = [aws_lb_listener.http, aws_lb_listener.https]
 }
 
 output "arn_suffix" {

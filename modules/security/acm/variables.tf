@@ -34,3 +34,15 @@ variable "common_tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "create_validation_records" {
+  description = "Whether this certificate owns the DNS validation records"
+  type        = bool
+  default     = true
+}
+
+variable "validation_record_fqdns" {
+  description = "Validation records managed by another certificate in the same account"
+  type        = list(string)
+  default     = []
+}
