@@ -31,6 +31,10 @@ variable "autoscaling_max_capacity" { type = number }
 variable "autoscaling_cpu_target" { type = number }
 variable "log_retention_days" { type = number }
 variable "container_environment" { type = map(string) }
+variable "container_secrets" {
+  type    = map(string)
+  default = {}
+}
 variable "database_name" { type = string }
 variable "database_master_username" { type = string }
 variable "aurora_engine_version" { type = string }
@@ -57,4 +61,23 @@ variable "cloudwatch_alarm_email_addresses" {
   description = "Email recipients for CloudWatch alarm and recovery notifications; each subscription requires email confirmation"
   type        = set(string)
   default     = []
+}
+
+variable "cloudfront_basic_auth" {
+  description = "Required dev Basic auth credentials; supply in basic-auth.secrets.auto.tfvars or TF_VAR_cloudfront_basic_auth"
+  type = object({
+    username = string
+    password = string
+  })
+  default   = null
+  sensitive = true
+
+  validation {
+    condition = var.cloudfront_basic_auth == null ? false : (
+      length(var.cloudfront_basic_auth.username) > 0 &&
+      !strcontains(var.cloudfront_basic_auth.username, ":") &&
+      length(var.cloudfront_basic_auth.password) > 0
+    )
+    error_message = "Dev requires Basic auth. Set cloudfront_basic_auth with a nonempty username without colon and a nonempty password."
+  }
 }

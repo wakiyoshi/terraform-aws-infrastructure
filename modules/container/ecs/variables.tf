@@ -101,3 +101,19 @@ variable "container_environment" {
   type        = map(string)
   default     = {}
 }
+
+variable "database_secret_arn" {
+  description = "RDS-managed secret containing username and password"
+  type        = string
+}
+
+variable "container_secrets" {
+  description = "Environment variable names mapped to Secrets Manager valueFrom references"
+  type        = map(string)
+  default     = {}
+}
+
+variable "database_kms_key_arn" {
+  description = "KMS key encrypting the RDS-managed secret"
+  type        = string
+}

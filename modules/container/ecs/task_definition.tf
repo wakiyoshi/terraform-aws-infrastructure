@@ -52,9 +52,25 @@ resource "aws_ecs_task_definition" "main" {
           for name, value in var.container_environment : {
             name  = name
             value = value
-          }
+          } if !contains(concat(["DB_USERNAME", "DB_PASSWORD"], keys(var.container_secrets)), name)
         ]
       )
+
+      secrets = concat([
+        {
+          name      = "DB_USERNAME"
+          valueFrom = "${var.database_secret_arn}:username::"
+        },
+        {
+          name      = "DB_PASSWORD"
+          valueFrom = "${var.database_secret_arn}:password::"
+        }
+        ], [
+        for name, value_from in var.container_secrets : {
+          name      = name
+          valueFrom = value_from
+        } if !contains(["DB_USERNAME", "DB_PASSWORD"], name)
+      ])
 
       logConfiguration = {
         logDriver = "awslogs"

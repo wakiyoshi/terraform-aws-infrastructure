@@ -27,7 +27,12 @@ autoscaling_min_capacity       = 1
 autoscaling_max_capacity       = 2
 autoscaling_cpu_target         = 70
 log_retention_days             = 7
-container_environment          = {}
+container_environment = {
+  APP_DEBUG   = "false"
+  APP_URL     = "https://waki-cloud-lab.com"
+  LOG_CHANNEL = "stderr"
+  LOG_LEVEL   = "info"
+}
 
 // Aurora Serverless v2
 database_name                  = "app"

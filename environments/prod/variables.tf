@@ -5,6 +5,23 @@ variable "vpc_cidr" { type = string }
 variable "availability_zones" { type = list(string) }
 variable "application_port" { type = number }
 variable "domain_name" { type = string }
+
+
+variable "delegated_name_servers" {
+  description = "DEV/STG Route 53 name servers, obtained from each environment's route53_name_servers output"
+  type        = map(list(string))
+  default     = {}
+
+  // 不正な値を拒否
+  validation {
+    condition = alltrue([
+      for environment, servers in var.delegated_name_servers :
+      contains(["dev", "stg"], environment) && length(servers) == 4 &&
+      length(distinct(servers)) == 4 && alltrue([for server in servers : length(trimspace(server)) > 0])
+    ])
+    error_message = "Only dev and stg are supported, and each must specify four distinct non-empty name servers."
+  }
+}
 variable "frontend_bucket_name" {
   type    = string
   default = null
@@ -58,4 +75,23 @@ variable "cloudwatch_alarm_email_addresses" {
   description = "Email recipients for CloudWatch alarm and recovery notifications; each subscription requires email confirmation"
   type        = set(string)
   default     = []
+}
+
+variable "cloudfront_basic_auth" {
+  description = "Optional Basic auth credentials; supply outside committed tfvars"
+  type = object({
+    username = string
+    password = string
+  })
+  default   = null
+  sensitive = true
+
+  validation {
+    condition = var.cloudfront_basic_auth == null ? true : (
+      length(var.cloudfront_basic_auth.username) > 0 &&
+      !strcontains(var.cloudfront_basic_auth.username, ":") &&
+      length(var.cloudfront_basic_auth.password) > 0
+    )
+    error_message = "Use a nonempty username without colon, a nonempty password."
+  }
 }

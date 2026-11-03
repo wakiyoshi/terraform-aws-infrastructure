@@ -4,3 +4,7 @@
 crash.log
 crash.*.log
 *.tfplan
+
+# Local authentication inputs must not be committed.
+*.secrets.tfvars
+*.secrets.auto.tfvars

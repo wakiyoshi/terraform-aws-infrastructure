@@ -5,8 +5,10 @@ on:
     paths:
       - "**/*.tf"
       - "**/*.tfvars"
+      - "modules/network/cloudfront/*.js"
       - "**/.terraform.lock.hcl"
       - ".github/workflows/terraform.yml"
+      - ".github/actions/terraform-setup/**"
   workflow_dispatch:
     inputs:
       environment:
@@ -23,9 +25,9 @@ permissions:
   contents: read
   id-token: write
 
-# 手動applyは環境を問わず直列化し、同時applyを防止する
+# 同じ環境への手動applyを直列化する
 concurrency:
-  group: ${{ github.event_name == 'workflow_dispatch' && 'terraform-apply' || format('terraform-ci-{0}', github.run_id) }}
+  group: ${{ github.event_name == 'workflow_dispatch' && format('terraform-apply-{0}', inputs.environment) || format('terraform-ci-{0}', github.run_id) }}
   cancel-in-progress: false
 
 env:
@@ -37,119 +39,96 @@ env:
   AWS_ACCOUNT_ID: ${{ vars[format('AWS_ACCOUNT_ID_{0}', inputs.environment)] }}
 
 jobs:
-  terraform-plan:
-    if: github.event_name == 'pull_request'
+  cloudfront-function-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: CloudFront Functionの認証とパス処理を検証
+        run: node tests/cloudfront-basic-auth.cjs
+
+  targets:
+    runs-on: ubuntu-latest
+    outputs:
+      environments: ${{ steps.targets.outputs.environments }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: 手動applyはマージ後のmainから実行
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+        run: |
+          echo "mainブランチを選択して実行してください。" >&2
+          exit 1
+      - id: targets
+        name: 対象環境を決定
+        env:
+          SELECTED_ENV: ${{ inputs.environment }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          python3 - <<'PYTHON'
+          import json, os, subprocess
+          from pathlib import Path
+
+          if os.environ["SELECTED_ENV"]:
+              targets = [os.environ["SELECTED_ENV"]]
+          else:
+              paths = subprocess.check_output([
+                  "git", "diff", "--name-only", "--no-renames", "-z",
+                  os.environ["BASE_SHA"] + "..." + os.environ["HEAD_SHA"]
+              ]).decode().split("\0")
+              shared = any(p.startswith(("modules/", ".github/actions/terraform-setup/"))
+                           or p == ".github/workflows/terraform.yml"
+                           or (p and "/" not in p and (p.endswith((".tf", ".tfvars")) or p == ".terraform.lock.hcl"))
+                           for p in paths)
+              targets = [env.upper() for env in ("dev", "stg", "prod")
+                         if shared or any(p.startswith(f"environments/{env}/") for p in paths)]
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
+              output.write("environments=" + json.dumps(targets) + "\n")
+          PYTHON
+
+  plan:
+    needs: targets
+    if: >-
+      needs.targets.outputs.environments != '[]' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.pull_request.head.repo.full_name == github.repository)
     name: Terraform plan (${{ matrix.environment }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - environment: DEV
-            working_directory: environments/dev
-            role_variable: AWS_ROLE_ARN_DEV
-            account_variable: AWS_ACCOUNT_ID_DEV
-          - environment: STG
-            working_directory: environments/stg
-            role_variable: AWS_ROLE_ARN_STG
-            account_variable: AWS_ACCOUNT_ID_STG
-          - environment: PROD
-            working_directory: environments/prod
-            role_variable: AWS_ROLE_ARN_PROD
-            account_variable: AWS_ACCOUNT_ID_PROD
-
+        environment: ${{ fromJSON(needs.targets.outputs.environments) }}
+    env:
+      TF_WORKING_DIR: ${{ fromJSON('{"DEV":"environments/dev","STG":"environments/stg","PROD":"environments/prod"}')[matrix.environment] }}
     steps:
-      - name: リポジトリをチェックアウト
-        uses: actions/checkout@v7
-
-      - name: Terraformをセットアップ
-        uses: hashicorp/setup-terraform@v4
+      - uses: actions/checkout@v7
+      - name: Terraform・AWSをセットアップ
+        uses: ./.github/actions/terraform-setup
         with:
-          # ローカルで使用中かつrequired_versionを満たすバージョンに固定する
-          terraform_version: 1.15.7
-          terraform_wrapper: false
-
+          role-arn: ${{ vars[format(github.event_name == 'pull_request' && 'AWS_PLAN_ROLE_ARN_{0}' || 'AWS_ROLE_ARN_{0}', matrix.environment)] }}
+          account-id: ${{ vars[format('AWS_ACCOUNT_ID_{0}', matrix.environment)] }}
+          working-directory: ${{ env.TF_WORKING_DIR }}
       - name: Terraform fmtを確認
         run: terraform fmt -check -recursive
-
-      - name: AWSへOIDC認証
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          # Repository Variablesに環境別Role ARNとAccount IDを設定する
-          role-to-assume: ${{ vars[matrix.role_variable] }}
-          role-session-name: terraform-plan-${{ matrix.environment }}-${{ github.run_id }}
-          aws-region: ap-northeast-1
-          allowed-account-ids: ${{ vars[matrix.account_variable] }}
-
-      - name: Terraform init
-        run: terraform -chdir="${{ matrix.working_directory }}" init -lockfile=readonly
-
       - name: Terraform validate
-        run: terraform -chdir="${{ matrix.working_directory }}" validate
-
+        run: terraform -chdir="$TF_WORKING_DIR" validate
       - name: Terraform plan
-        run: terraform -chdir="${{ matrix.working_directory }}" plan -no-color -out=tfplan
-
+        run: terraform -chdir="$TF_WORKING_DIR" plan -no-color -out=tfplan
       - name: plan結果をJob Summaryへ出力
         run: |
           {
             echo "## Terraform plan (${{ matrix.environment }})"
             echo '```hcl'
-            terraform -chdir="${{ matrix.working_directory }}" show -no-color tfplan
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-  apply_plan:
-    if: github.event_name == 'workflow_dispatch'
-    name: Apply plan (${{ inputs.environment }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    steps:
-      - name: 必須Repository Variablesを確認
-        run: |
-          if [[ -z "$AWS_ROLE_ARN" || ! "$AWS_ACCOUNT_ID" =~ ^[0-9]{12}$ ]]; then
-            echo "選択環境のRole ARNまたは12桁のAccount IDが未設定です。" >&2
-            exit 1
-          fi
-
-      - name: リポジトリをチェックアウト
-        uses: actions/checkout@v7
-
-      - name: Terraformをセットアップ
-        uses: hashicorp/setup-terraform@v4
-        with:
-          terraform_version: 1.15.7
-          terraform_wrapper: false
-
-      - name: AWSへOIDC認証
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_ROLE_ARN }}
-          role-session-name: terraform-apply-plan-${{ inputs.environment }}-${{ github.run_id }}
-          aws-region: ap-northeast-1
-          allowed-account-ids: ${{ env.AWS_ACCOUNT_ID }}
-
-      - name: Terraform init
-        run: terraform -chdir="$TF_WORKING_DIR" init -lockfile=readonly
-
-      - name: Terraform plan
-        run: terraform -chdir="$TF_WORKING_DIR" plan -no-color -out=tfplan
-
-      - name: apply予定のplanをJob Summaryへ出力
-        run: |
-          {
-            echo "## Terraform apply plan (${{ inputs.environment }})"
-            echo '```hcl'
             terraform -chdir="$TF_WORKING_DIR" show -no-color tfplan
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: planファイルを保存
+      - name: apply用planを保存
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v7
         with:
-          name: tfplan-${{ inputs.environment }}-${{ github.run_id }}
+          name: tfplan-${{ matrix.environment }}-${{ github.run_id }}
           path: ${{ env.TF_WORKING_DIR }}/tfplan
           if-no-files-found: error
           retention-days: 1
@@ -157,7 +136,7 @@ jobs:
   apply:
     if: github.event_name == 'workflow_dispatch'
     name: Terraform apply (${{ inputs.environment }})
-    needs: apply_plan
+    needs: [plan, cloudfront-function-test]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     # STG / PRODにはGitHub EnvironmentのRequired reviewersを設定する
@@ -168,23 +147,12 @@ jobs:
       - name: リポジトリをチェックアウト
         uses: actions/checkout@v7
 
-      - name: Terraformをセットアップ
-        uses: hashicorp/setup-terraform@v4
+      - name: Terraform・AWSをセットアップ
+        uses: ./.github/actions/terraform-setup
         with:
-          terraform_version: 1.15.7
-          terraform_wrapper: false
-
-      - name: AWSへOIDC認証
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_ROLE_ARN }}
-          role-session-name: terraform-apply-${{ inputs.environment }}-${{ github.run_id }}
-          aws-region: ap-northeast-1
-          allowed-account-ids: ${{ env.AWS_ACCOUNT_ID }}
-
-      # 新しいrunnerで保存済みplanを適用するため、同じbackend/providerを初期化する
-      - name: Terraform init
-        run: terraform -chdir="$TF_WORKING_DIR" init -lockfile=readonly
+          role-arn: ${{ env.AWS_ROLE_ARN }}
+          account-id: ${{ env.AWS_ACCOUNT_ID }}
+          working-directory: ${{ env.TF_WORKING_DIR }}
 
       - name: 承認済みplanを取得
         uses: actions/download-artifact@v7

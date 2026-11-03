@@ -1,3 +1,13 @@
+output "route53_zone_id" {
+  description = "ID of the environment public Route 53 hosted zone"
+  value       = module.main.route53_zone_id
+}
+
+output "route53_name_servers" {
+  description = "Name servers to register in the PROD parent zone"
+  value       = module.main.route53_name_servers
+}
+
 output "cloudfront_distribution_id" {
   description = "ID of the CloudFront distribution"
   value       = module.main.cloudfront_distribution_id
