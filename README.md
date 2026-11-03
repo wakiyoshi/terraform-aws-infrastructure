@@ -143,18 +143,52 @@ TODO：最新版を配置
 waki-cloud-lab.com
 ---
 
-## 5. 構築・運用方針
+## 5. 初期構築手順
 
-TerraformでAWSリソースを管理し、DEV / STG / PRODの環境ごとに構築する。
+以下はDEVの例。STG / PRODでは環境名・プロファイルを変更する。コマンドはリポジトリのルートで実行する。
 
-### 5.1 構築の流れ
+### 5.1 BootstrapでState保存先を作成
 
-1. Terraformの管理基盤を準備する。
-2. ECRへアプリケーションのコンテナイメージを登録する。
-3. Terraformで変更内容を確認し、AWS環境へ反映する。
+1. `environments/dev/bootstrap/terraform.tfvars` を設定する。
+2. AWSへログインし、State用S3バケットとCI/CD用Roleを作成する。
 
-### 5.2 運用上の工夫
+   ```bash
+   export AWS_PROFILE=dev-account
+   aws sso login --profile "$AWS_PROFILE"
+   aws sts get-caller-identity
 
-* **認証**：GitHub ActionsとAWSをOIDCで連携し、アクセスキーの保存を不要にする。
-* **更新管理**：インフラはTerraform、アプリケーションは専用のデプロイWorkflowで管理する。
-* **コスト管理**：検証時は課金対象リソースの作成を切り替え、費用を抑える。
+   terraform -chdir=environments/dev/bootstrap init
+   terraform -chdir=environments/dev/bootstrap plan
+   terraform -chdir=environments/dev/bootstrap apply
+
+   terraform -chdir=environments/dev/bootstrap output
+   ```
+
+### 5.2 CI/CDを設定
+
+1. 出力された `bucket_name` を `environments/dev/backend.tf` の `bucket` に設定する。
+2. GitHubのRepository Variablesを設定する（STG / PRODも同様）。
+
+   | Variable | 設定値 |
+   | --- | --- |
+   | `AWS_ACCOUNT_ID_DEV` | DEVのAWSアカウントID |
+   | `AWS_ROLE_ARN_DEV` | Bootstrapの `terraform_deploy_role_arn` |
+   | `AWS_PLAN_ROLE_ARN_DEV` | PR用の読み取り専用Role ARN（別途作成） |
+
+3. GitHub Environmentに `DEV` / `STG` / `PROD` を作成し、STG / PRODにはRequired reviewersを設定する。
+
+### 5.3 CI/CDでapply
+
+1. `environments/dev/terraform.tfvars` の `enable_paid_resources=false` でPRを作成し、plan確認後にmainへマージする。
+2. Actions → **Terraform CI / Apply** → **Run workflow** で、ブランチ `main`・環境 `DEV` を選択して実行する（ECRを作成）。
+3. Application側でECRへのイメージpushを完了する。
+4. `enable_paid_resources=true` に変更し、PRのplan確認・マージ後、同じWorkflowを再実行する。
+5. Job Summaryのplanを確認し、承認が必要な環境では承認してapplyする。
+
+※ PR用RoleはBootstrapの作成対象外。PRからのOIDC認証、リソース参照、State読み取り・ロック操作の権限を設定する。BootstrapのローカルStateは保管する。
+
+### 5.4 運用ルール
+
+* ローカルCLIからの `terraform plan`・`terraform apply` などによる環境への直接操作は原則禁止とする。
+* 通常の変更はPRを作成し、マージ後にGitHub Actionsから対象環境へplan,applyする。
+* ただし初期構築時のBootstrapは例外とする。障害対応などでCLI操作が必要な場合は、事前承認を得て実施し、操作内容と結果を記録する。
