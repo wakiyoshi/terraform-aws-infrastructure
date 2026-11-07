@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: Applyする環境
+        description: Plan・Applyする環境
         required: true
         type: choice
         options:
@@ -20,10 +20,9 @@ on:
           - STG
           - PROD
 
-# OIDCトークンの発行とリポジトリの読み取りだけを許可する
+# 共通権限は読み取りのみ。OIDCはPlan・Apply Jobで許可する
 permissions:
   contents: read
-  id-token: write
 
 # 同じ環境への手動applyを直列化する
 concurrency:
@@ -39,107 +38,83 @@ env:
   AWS_ACCOUNT_ID: ${{ vars[format('AWS_ACCOUNT_ID_{0}', inputs.environment)] }}
 
 jobs:
-  cloudfront-function-test:
+  check:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: CloudFront Functionの認証とパス処理を検証
-        run: node tests/cloudfront-basic-auth.cjs
-
-  targets:
-    runs-on: ubuntu-latest
-    outputs:
-      environments: ${{ steps.targets.outputs.environments }}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - name: 手動applyはマージ後のmainから実行
-        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+      - name: Terraformをセットアップ（AWS認証なし）
+        uses: ./.github/actions/terraform-setup
+        with:
+          backend: 'false'
+      - name: Terraform fmtを確認
+        run: terraform fmt -check -recursive
+      - name: 各環境のTerraform validate
         run: |
-          echo "mainブランチを選択して実行してください。" >&2
-          exit 1
-      - id: targets
-        name: 対象環境を決定
+          for environment in dev stg prod; do
+            terraform -chdir="environments/$environment" init -backend=false -lockfile=readonly
+            terraform -chdir="environments/$environment" validate -no-color
+          done
+      - name: CloudFront FunctionのJS変更を確認
+        id: cloudfront
         env:
-          SELECTED_ENV: ${{ inputs.environment }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          python3 - <<'PYTHON'
-          import json, os, subprocess
-          from pathlib import Path
-
-          if os.environ["SELECTED_ENV"]:
-              targets = [os.environ["SELECTED_ENV"]]
-          else:
-              paths = subprocess.check_output([
-                  "git", "diff", "--name-only", "--no-renames", "-z",
-                  os.environ["BASE_SHA"] + "..." + os.environ["HEAD_SHA"]
-              ]).decode().split("\0")
-              shared = any(p.startswith(("modules/", ".github/actions/terraform-setup/"))
-                           or p == ".github/workflows/terraform.yml"
-                           or (p and "/" not in p and (p.endswith((".tf", ".tfvars")) or p == ".terraform.lock.hcl"))
-                           for p in paths)
-              targets = [env.upper() for env in ("dev", "stg", "prod")
-                         if shared or any(p.startswith(f"environments/{env}/") for p in paths)]
-          with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
-              output.write("environments=" + json.dumps(targets) + "\n")
-          PYTHON
+          if ! git diff --quiet "$BASE_SHA...$HEAD_SHA" -- 'modules/network/cloudfront/*.js'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: CloudFront Functionの認証とパス処理を検証
+        if: steps.cloudfront.outputs.changed == 'true'
+        run: node --test tests/cloudfront-basic-auth.cjs
 
   plan:
-    needs: targets
-    if: >-
-      needs.targets.outputs.environments != '[]' &&
-      (github.event_name == 'workflow_dispatch' ||
-       github.event.pull_request.head.repo.full_name == github.repository)
-    name: Terraform plan (${{ matrix.environment }})
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    name: Terraform plan (${{ inputs.environment }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        environment: ${{ fromJSON(needs.targets.outputs.environments) }}
-    env:
-      TF_WORKING_DIR: ${{ fromJSON('{"DEV":"environments/dev","STG":"environments/stg","PROD":"environments/prod"}')[matrix.environment] }}
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v7
       - name: Terraform・AWSをセットアップ
         uses: ./.github/actions/terraform-setup
         with:
-          role-arn: ${{ vars[format(github.event_name == 'pull_request' && 'AWS_PLAN_ROLE_ARN_{0}' || 'AWS_ROLE_ARN_{0}', matrix.environment)] }}
-          account-id: ${{ vars[format('AWS_ACCOUNT_ID_{0}', matrix.environment)] }}
+          role-arn: ${{ env.AWS_ROLE_ARN }}
+          account-id: ${{ env.AWS_ACCOUNT_ID }}
           working-directory: ${{ env.TF_WORKING_DIR }}
-      - name: Terraform fmtを確認
-        run: terraform fmt -check -recursive
-      - name: Terraform validate
-        run: terraform -chdir="$TF_WORKING_DIR" validate
       - name: Terraform plan
         run: terraform -chdir="$TF_WORKING_DIR" plan -no-color -out=tfplan
       - name: plan結果をJob Summaryへ出力
         run: |
           {
-            echo "## Terraform plan (${{ matrix.environment }})"
+            echo "## Terraform plan (${{ inputs.environment }})"
             echo '```hcl'
             terraform -chdir="$TF_WORKING_DIR" show -no-color tfplan
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: apply用planを保存
-        if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v7
         with:
-          name: tfplan-${{ matrix.environment }}-${{ github.run_id }}
+          name: tfplan-${{ inputs.environment }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ env.TF_WORKING_DIR }}/tfplan
           if-no-files-found: error
           retention-days: 1
 
   apply:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     name: Terraform apply (${{ inputs.environment }})
-    needs: [plan, cloudfront-function-test]
+    needs: plan
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    # STG / PRODにはGitHub EnvironmentのRequired reviewersを設定する
+    permissions:
+      contents: read
+      id-token: write
+    # DEV / STG / PRODすべてにRequired reviewersを設定する
     environment:
       name: ${{ inputs.environment }}
 
@@ -157,7 +132,7 @@ jobs:
       - name: 承認済みplanを取得
         uses: actions/download-artifact@v7
         with:
-          name: tfplan-${{ inputs.environment }}-${{ github.run_id }}
+          name: tfplan-${{ inputs.environment }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ env.TF_WORKING_DIR }}
 
       - name: Terraform apply

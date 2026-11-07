@@ -173,19 +173,18 @@ waki-cloud-lab.com
    | --- | --- |
    | `AWS_ACCOUNT_ID_DEV` | DEVのAWSアカウントID |
    | `AWS_ROLE_ARN_DEV` | Bootstrapの `terraform_deploy_role_arn` |
-   | `AWS_PLAN_ROLE_ARN_DEV` | PR用の読み取り専用Role ARN（別途作成） |
 
-3. GitHub Environmentに `DEV` / `STG` / `PROD` を作成し、STG / PRODにはRequired reviewersを設定する。
+3. GitHub Environmentに `DEV` / `STG` / `PROD` を作成し、全環境にRequired reviewersを設定し、デプロイ可能なブランチをmainに限定する。
 
 ### 5.3 CI/CDでapply
 
-1. `environments/dev/terraform.tfvars` の `enable_paid_resources=false` でPRを作成し、plan確認後にmainへマージする。
+1. `environments/dev/terraform.tfvars` の `enable_paid_resources=false` でPRを作成し、自動のfmt・validate成功後にmainへマージする。
 2. Actions → **Terraform CI / Apply** → **Run workflow** で、ブランチ `main`・環境 `DEV` を選択して実行する（ECRを作成）。
 3. Application側でECRへのイメージpushを完了する。
-4. `enable_paid_resources=true` に変更し、PRのplan確認・マージ後、同じWorkflowを再実行する。
-5. Job Summaryのplanを確認し、承認が必要な環境では承認してapplyする。
+4. `enable_paid_resources=true` に変更し、PRチェック成功・マージ後、同じWorkflowを再実行する。
+5. Job Summaryのplanを確認し、GitHub Environmentで承認して保存済みplanをapplyする。Planの保存期間は1日。期限切れや再実行時はWorkflow全体を再実行し、新しいPlanを確認・承認する。
 
-※ PR用RoleはBootstrapの作成対象外。PRからのOIDC認証、リソース参照、State読み取り・ロック操作の権限を設定する。BootstrapのローカルStateは保管する。
+※ PRではAWS認証せず、各環境を `init -backend=false` してvalidateする。BootstrapのローカルStateは保管する。
 
 ### 5.4 運用ルール
 
