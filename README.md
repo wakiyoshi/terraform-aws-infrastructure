@@ -92,7 +92,7 @@
 ## 3. システム構成
 
 ### 3.1 システム構成図
-TODO：最新版を配置
+<img width="2352" height="1466" alt="aws_architecture_all_inside_cloud drawio20261027" src="https://github.com/user-attachments/assets/140e60d4-9485-44f9-9159-8a9cfda7550f" />
 
 
 ### 3.2 主な構成
