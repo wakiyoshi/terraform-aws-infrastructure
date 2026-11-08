@@ -101,7 +101,7 @@
 | コンピューティング | ECS Fargate / Service Auto Scaling                          |
 | ネットワーク    | VPC / Subnet / Security Group / Route 53 / CloudFront / ALB |
 | 証明書       | ACM                                                         |
-| データベース    | Aurora MySQL                                                |
+| データベース    | Aurora MySQL （Serverless v2）                                             |
 | ストレージ     | S3                                                          |
 | 管理者・運用者認証        | IAM Identity Center                                         |
 | セキュリティ    | AWS WAF / GuardDuty / Security Hub / Inspector              |
