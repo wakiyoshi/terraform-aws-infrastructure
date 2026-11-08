@@ -102,8 +102,8 @@ Aurora MySQLでは自動バックアップおよびPITR（Point-in-Time Recovery
 ## 3. システム構成
 
 ### 3.1 システム構成図
+<img width="2352" height="1466" alt="aws_architecture_all_inside_cloud drawio20261027" src="https://github.com/user-attachments/assets/0b20fef5-9b22-4bbf-89fb-aadd7cb7ddea" />
 
-既存の構成図を掲載する。
 
 ### 3.2 主な構成
 
