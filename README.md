@@ -114,9 +114,9 @@ Aurora MySQLでは自動バックアップおよびPITR（Point-in-Time Recovery
 | 証明書 | ACM |
 | データベース | Aurora MySQL（Serverless v2） |
 | ストレージ | S3 / S3 Versioning |
-| 管理者・運用者認証 | IAM Identity Center |
+| 管理者・運用者認証 | IAM Identity Center（本リポジトリの管理対象外） |
 | セキュリティ | AWS WAF / GuardDuty / Security Hub / Inspector |
-| 組織管理 | AWS Organizations |
+| 組織管理 | AWS Organizations（本リポジトリの管理対象外） |
 | 機密情報・暗号化 | Secrets Manager / KMS |
 | 監視・ログ | CloudWatch / CloudWatch Logs / CloudWatch Alarms |
 | 監査・構成管理 | CloudTrail / AWS Config / アプリケーション監査ログ |
@@ -124,7 +124,9 @@ Aurora MySQLでは自動バックアップおよびPITR（Point-in-Time Recovery
 | コンテナレジストリ | ECR |
 | CI/CD | GitHub Actions |
 | IaC | Terraform |
-| コスト管理 | AWS Budgets / AWS Cost Explorer |
+| コスト管理 | AWS Budgets（本リポジトリの管理対象外） / AWS Cost Explorer |
+
+> **管理範囲:** AWS Organizations、IAM Identity CenterおよびAWS Budgetsは組織共通基盤として別途管理し、本リポジトリのTerraformでは作成・変更しない。
 
 ### 3.3 可用性設計
 
