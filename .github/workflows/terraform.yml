@@ -5,7 +5,7 @@ on:
     paths:
       - "**/*.tf"
       - "**/*.tfvars"
-      - "modules/network/cloudfront/*.js"
+      - "modules/cloudfront/*.js"
       - "**/.terraform.lock.hcl"
       - ".github/workflows/terraform.yml"
       - ".github/actions/terraform-setup/**"
@@ -64,7 +64,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          if ! git diff --quiet "$BASE_SHA...$HEAD_SHA" -- 'modules/network/cloudfront/*.js'; then
+          if ! git diff --quiet "$BASE_SHA...$HEAD_SHA" -- 'modules/cloudfront/*.js'; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
       - name: CloudFront Functionの認証とパス処理を検証

@@ -1,6 +1,6 @@
 # DEV一時構成: VPC・S3・ECRのみ。通常構成とリソースアドレスを揃える。
 module "vpc" {
-  source                = "../../../modules/network/vpc"
+  source                = "../../../modules/vpc"
   project_name          = var.project_name
   environment           = var.environment
   vpc_cidr              = var.vpc_cidr
@@ -11,14 +11,14 @@ module "vpc" {
 }
 
 module "s3" {
-  source       = "../../../modules/storage/s3"
+  source       = "../../../modules/s3"
   project_name = var.project_name
   environment  = var.environment
   common_tags  = var.common_tags
 }
 
 module "ecr" {
-  source = "../../../modules/container/ecr"
+  source = "../../../modules/ecr"
 
   project_name                   = var.project_name
   environment                    = var.environment

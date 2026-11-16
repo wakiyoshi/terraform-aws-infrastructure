@@ -1,6 +1,6 @@
 //vpc
 module "vpc" {
-  source                = "./network/vpc"
+  source                = "./vpc"
   project_name          = var.project_name
   environment           = var.environment
   vpc_cidr              = var.vpc_cidr
@@ -12,14 +12,14 @@ module "vpc" {
 
 //storage
 module "s3" {
-  source       = "./storage/s3"
+  source       = "./s3"
   project_name = var.project_name
   environment  = var.environment
   common_tags  = var.common_tags
 }
 
 module "route53" {
-  source = "./network/route53"
+  source = "./route53"
 
   project_name = var.project_name
   environment  = var.environment
@@ -29,7 +29,7 @@ module "route53" {
 
 module "acm" {
   count  = var.environment == "prod" || var.enable_paid_resources ? 1 : 0
-  source = "./security/acm"
+  source = "./acm"
 
   project_name              = var.project_name
   environment               = var.environment
@@ -43,7 +43,7 @@ module "acm" {
 }
 
 module "cloudfront_acm" {
-  source = "./security/acm"
+  source = "./acm"
 
   providers = {
     aws = aws.us_east_1
@@ -69,7 +69,7 @@ module "ses" {
 }
 
 module "ecr" {
-  source = "./container/ecr"
+  source = "./ecr"
 
   project_name                   = var.project_name
   environment                    = var.environment
@@ -85,7 +85,7 @@ moved {
 
 module "alb" {
   count  = var.enable_paid_resources ? 1 : 0
-  source = "./network/alb"
+  source = "./alb"
 
   project_name          = var.project_name
   environment           = var.environment
@@ -116,7 +116,7 @@ resource "aws_route53_record" "alb_origin" {
 }
 
 module "cloudfront" {
-  source = "./network/cloudfront"
+  source = "./cloudfront"
 
   providers = {
     aws           = aws
@@ -175,7 +175,7 @@ data "aws_ecr_image" "bootstrap" {
 
 module "ecs" {
   count  = var.enable_paid_resources ? 1 : 0
-  source = "./container/ecs"
+  source = "./ecs"
 
   project_name             = var.project_name
   environment              = var.environment
@@ -240,7 +240,7 @@ resource "aws_iam_role_policy" "ecs_ses_send" {
 }
 
 module "rds_secrets_kms" {
-  source = "./security/kms"
+  source = "./kms"
 
   # KMS Keyの削除予約によるSecret復号不能を避けるため、Aurora OFF時も保持する
   project_name            = var.project_name
@@ -253,7 +253,7 @@ module "rds_secrets_kms" {
 
 module "rds" {
   count  = var.enable_paid_resources ? 1 : 0
-  source = "./database/rds"
+  source = "./rds"
 
   project_name                        = var.project_name
   environment                         = var.environment
@@ -279,14 +279,14 @@ module "rds" {
 
 module "rds_secret_policy" {
   count  = var.enable_paid_resources ? 1 : 0
-  source = "./security/secrets_manager"
+  source = "./secrets_manager"
 
   secret_arn = module.rds[0].master_user_secret_arn
 }
 
 module "sns" {
   count  = length(var.cloudwatch_alarm_email_addresses) > 0 ? 1 : 0
-  source = "./monitoring/sns"
+  source = "./sns"
 
   project_name    = var.project_name
   environment     = var.environment
@@ -296,7 +296,7 @@ module "sns" {
 
 module "cloudwatch" {
   count  = var.enable_paid_resources ? 1 : 0
-  source = "./monitoring/cloudwatch"
+  source = "./cloudwatch"
 
   project_name            = var.project_name
   environment             = var.environment
@@ -310,7 +310,7 @@ module "cloudwatch" {
 }
 
 module "security_baseline" {
-  source = "./security/baseline"
+  source = "./security_baseline"
 
   project_name                  = var.project_name
   environment                   = var.environment
@@ -324,7 +324,7 @@ moved {
 }
 
 module "cloudtrail" {
-  source = "./security/cloudtrail"
+  source = "./cloudtrail"
 
   project_name = var.project_name
   environment  = var.environment

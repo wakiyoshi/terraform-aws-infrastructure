@@ -36,7 +36,7 @@ flowchart LR
 - `/api/*` のALB Originは `enable_paid_resources = true` の場合だけ存在する。
 - `prod` はCloudFrontからALBまでHTTPS。`dev`/`stg` はCloudFrontからALBまでHTTP。
 - ECSからAuroraへのネットワークルールはあるが、DB endpoint、DB名、Secret ARNをECS Task Definitionへ渡す実装と、Task RoleのSecrets Manager/KMS権限はない。アプリケーションがどのようにDB接続情報を取得する設計かはコードから判断できない。
-- `modules/container/ecs/autoscaling.tf` は空であり、Service Auto Scalingは実装されていない。
+- Service Auto Scaling用Resourceは実装されていない。
 
 ## 2. ディレクトリ構成
 
@@ -74,14 +74,22 @@ flowchart LR
     ├── outputs.tf
     ├── providers.tf
     ├── bootstrap/
-    ├── authentication/identity_center/
-    ├── container/{ecr,ecs}/
-    ├── database/rds/
-    ├── monitoring/{cloudwatch,sns}/
-    ├── network/{vpc,alb,cloudfront,route53}/
-    ├── security/{acm,baseline,cloudtrail,kms,secrets_manager}/
+    ├── acm/
+    ├── alb/
+    ├── cloudfront/
+    ├── cloudtrail/
+    ├── cloudwatch/
+    ├── ecr/
+    ├── ecs/
+    ├── kms/
+    ├── rds/
+    ├── route53/
+    ├── s3/
+    ├── secrets_manager/
+    ├── security_baseline/
     ├── ses/
-    └── storage/s3/
+    ├── sns/
+    └── vpc/
 ```
 
 | パス | 役割 |
@@ -184,7 +192,7 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 
 ### 4.2 Network Modules
 
-#### `modules/network/vpc` (`module.vpc`)
+#### `modules/vpc` (`module.vpc`)
 
 | 項目 | 内容 |
 |---|---|
@@ -203,7 +211,7 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 - S3 Gateway Endpointは常設でPrivate Route Tableへ関連付ける。
 - VPC CIDR、Subnet CIDR、AZ変更は置換や広範な依存Resource再作成を起こし得る。
 
-#### `modules/network/alb` (`module.alb`)
+#### `modules/alb` (`module.alb`)
 
 | 項目 | 内容 |
 |---|---|
@@ -222,7 +230,7 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 - prodだけDeletion Protection有効。
 - `vpc_cidr` と `availability_zones` はモジュール内部で未使用。
 
-#### `modules/network/route53` (`module.route53`)
+#### `modules/route53` (`module.route53`)
 
 - 呼び出し条件: `environment == "prod" ? 1 : 0`。
 - Inputs: `project_name`, `environment`, `domain_name`, `common_tags`。
@@ -231,7 +239,7 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 - 下流: ACM DNS Validation、SES DNS Record、CloudFront/ALB Alias Record。
 - 親Zone `waki-cloud-lab.com` へのNS Delegationはこのコードでは作らず、Outputを使った外部作業になる。
 
-#### `modules/network/cloudfront` (`module.cloudfront`)
+#### `modules/cloudfront` (`module.cloudfront`)
 
 | 項目 | 内容 |
 |---|---|
@@ -253,7 +261,7 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 
 ### 4.3 Storage / Container Modules
 
-#### `modules/storage/s3` (`module.s3`)
+#### `modules/s3` (`module.s3`)
 
 - 呼び出し元: `modules/main.tf`、常設。
 - Inputs: 実際に渡されるのは `project_name`, `environment`, `common_tags`。
@@ -263,7 +271,7 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 - 下流: `module.cloudfront`。
 - `bucket_name` と `force_destroy` Variableは定義されるがResourceで未使用。上位の `frontend_bucket_name` / `frontend_bucket_force_destroy` も配線されていない。
 
-#### `modules/container/ecr` (`module.ecr`)
+#### `modules/ecr` (`module.ecr`)
 
 - 呼び出し元: `modules/main.tf`、常設。
 - Inputs: `project_name`, `environment`, `common_tags`, `keep_image_count`, `untagged_image_expiration_days`。
@@ -274,7 +282,7 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 - 下流: ECS Task Definition、Bootstrap Application RoleのPolicy命名。
 - Enhanced ScanはECR Moduleではなく `security_baseline` のアカウント/リージョン設定。
 
-#### `modules/container/ecs` (`module.ecs`)
+#### `modules/ecs` (`module.ecs`)
 
 | 項目 | 内容 |
 |---|---|
@@ -291,12 +299,12 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 - 環境変数は `APP_ENV` と `container_environment`。機密値用 `secrets` Blockはない。
 - ECS ServiceはDeployment Circuit Breaker/rollbackを有効化。
 - `lifecycle.ignore_changes = [desired_count, task_definition]`。初回以後のTask Definition Revisionとdesired countはTerraform差分として無視する。
-- `autoscaling_min_capacity`, `autoscaling_max_capacity`, `autoscaling_cpu_target` は受け取るが、`autoscaling.tf` が空のため未使用。
+- `autoscaling_min_capacity`, `autoscaling_max_capacity`, `autoscaling_cpu_target` は受け取るが、Auto Scaling Resourceがないため未使用。
 - Task Roleは通常権限なし。prodかつpaid時だけSES Send inline policyが上位から付く。
 
 ### 4.4 Database / Secret Modules
 
-#### `modules/database/rds` (`module.rds`)
+#### `modules/rds` (`module.rds`)
 
 | 項目 | 内容 |
 |---|---|
@@ -316,7 +324,7 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 - Performance Insights保持は有効時7日。
 - Final Snapshot名は固定の `<project>-<env>-aurora-final`。
 
-#### `modules/security/kms` (`module.rds_secrets_kms`)
+#### `modules/kms` (`module.rds_secrets_kms`)
 
 - 常設。Aurora OFFでもRDS Secret復号不能を避ける意図で維持。
 - Inputs: `project_name`, `environment`, `alias_suffix = "rds-secrets"`, `description`, `deletion_window_in_days`, `common_tags`。
@@ -324,7 +332,7 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 - 設定: Rotation有効、削除待機30日（上位Default）。明示的Key PolicyはなくAWS Default Policy。
 - Outputs: `key_id`, `key_arn`, `alias_name`。RDSへ `key_arn` を渡す。
 
-#### `modules/security/secrets_manager` (`module.rds_secret_policy`)
+#### `modules/secrets_manager` (`module.rds_secret_policy`)
 
 - 呼び出し条件: `enable_paid_resources ? 1 : 0`。
 - Input: RDS Output `master_user_secret_arn`。
@@ -335,7 +343,7 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 
 ### 4.5 DNS / Certificate / Mail Modules
 
-#### `modules/security/acm` (`module.acm`, `module.cloudfront_acm`)
+#### `modules/acm` (`module.acm`, `module.cloudfront_acm`)
 
 - 呼び出し条件: prodのみ。同じModuleを2回呼ぶ。
 - `module.acm`: ap-northeast-1、ALB用、Apex + `*.prod.waki-cloud-lab.com`。
@@ -357,7 +365,7 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 
 ### 4.6 Monitoring / Security Modules
 
-#### `modules/monitoring/sns` (`module.sns`)
+#### `modules/sns` (`module.sns`)
 
 - 条件: `length(cloudwatch_alarm_email_addresses) > 0 ? 1 : 0`。現在は全環境作成。
 - Inputs: `project_name`, `environment`, `common_tags`, `email_addresses`。
@@ -365,7 +373,7 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 - Output: `topic_arn`。CloudWatch Alarm Actionへ追加。
 - Email Subscriptionは受信者によるConfirmが必要。TopicのKMS暗号化設定はない。
 
-#### `modules/monitoring/cloudwatch` (`module.cloudwatch`)
+#### `modules/cloudwatch` (`module.cloudwatch`)
 
 - 条件: `enable_paid_resources ? 1 : 0`。
 - Inputs: ECS Cluster/Service名、ALB/Target Group ARN suffix、RDS Cluster ID、追加Alarm Action、Tag。
@@ -373,9 +381,9 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 - Alarm: ECS CPU/Memory、ALB Unhealthy Host、ALB 5xx、Target 5xx、RDS CPU。
 - 5分Period、Alarm/OK両方をSNSへ通知。
 - Output: `alarm_arns` Map。
-- `log_group.tf` は空。ECS/WAF Logsは各サービスModule側で作成する。
+- ECS/WAF Logsは各サービスModule側で作成する。
 
-#### `modules/security/baseline` (`module.security_baseline`)
+#### `modules/security_baseline` (`module.security_baseline`)
 
 - 常設。Inputsは `project_name`, `environment`, `common_tags`, `include_global_resource_types`。
 - Data: Caller Identity、Region、Partition。
@@ -386,7 +394,7 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 - Outputs: Config Recorder/Bucket、GuardDuty Detector、Security Hub ARN、ECR Scan Type。
 - 注意: Config Recorder、Inspector Enabler、ECR Registry Scanning、Security Hubはアカウント/リージョン単位の性質が強く、既存管理との競合を確認する。
 
-#### `modules/security/cloudtrail` (`module.cloudtrail`)
+#### `modules/cloudtrail` (`module.cloudtrail`)
 
 - 常設。Inputs: `project_name`, `environment`, `common_tags`。
 - Resources: Log S3 Bucket一式と `aws_cloudtrail.main`。
@@ -395,7 +403,7 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 - Bucket: Public Block、BucketOwnerEnforced、Versioning、AES256、TLS強制、`force_destroy = false`。
 - Outputs: `trail_arn`, `bucket_name`。
 
-### 4.7 Bootstrap / 未接続Module
+### 4.7 Bootstrap Module
 
 #### `modules/bootstrap`
 
@@ -405,14 +413,6 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 - Outputs: `terraform_deploy_role_arn`, `application_deploy_role_arn`, `github_oidc_provider_arn`。Bootstrap Rootはこれらに加えてState Bucketの `bucket_name` を公開する。
 - 詳細は「8. Terraform State / Bootstrap」「9. GitHub Actions / CI/CD」を参照。
 
-#### `modules/authentication/identity_center`
-
-- どのRoot/Moduleからも呼び出されていないため、現在の構成には含まれない。
-- Intended Inputs: `permission_set_name`, `group_name`, `target_account_id`, `account_assignments`。
-- Intended Resources: Permission Set、ReadOnlyAccess Attachment、Group lookup、Account Assignment。
-- Outputs: なし。
-- 問題: `account_assignment.tf` が存在しない `aws_ssoadmin_managed_policy_attachment.this` を参照する一方、宣言名は `.readonly`。さらにAttachmentがAssignmentへ依存しており、意図上も循環依存になっている。現状のままRootから呼び出してはならない。
-
 ### 4.8 Resource / Data / Local Address索引
 
 主要説明で省略形を使ったResourceも含め、宣言されているTerraform AddressをModule単位で列挙する。`count`/`for_each` 使用時は実State Addressにindex/keyが付く。
@@ -421,24 +421,23 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 |---|---|
 | `environments/<env>/bootstrap` | `aws_s3_bucket.terraform_state`, `aws_s3_bucket_versioning.terraform_state`, `aws_s3_bucket_server_side_encryption_configuration.terraform_state`, `aws_s3_bucket_public_access_block.terraform_state`, `aws_s3_bucket_ownership_controls.terraform_state`, `aws_s3_bucket_policy.require_tls` |
 | `modules` | `aws_route53_record.alb_origin`, `aws_route53_record.cloudfront_ipv4`, `aws_route53_record.cloudfront_ipv6`, `aws_iam_role_policy.ecs_ses_send` |
-| `network/vpc` | `aws_vpc.main`, `aws_subnet.public`, `aws_subnet.private`, `aws_internet_gateway.main`, `aws_eip.nat`, `aws_nat_gateway.main`, `aws_route_table.public`, `aws_route.public_internet`, `aws_route_table_association.public`, `aws_route_table.private`, `aws_route.private_internet`, `aws_route_table_association.private`, `aws_vpc_endpoint.s3`, `aws_security_group.alb`, `aws_security_group.ecs`, `aws_security_group.rds`, `aws_vpc_security_group_ingress_rule.alb_https`, `aws_vpc_security_group_ingress_rule.alb_http`, `aws_vpc_security_group_ingress_rule.ecs_from_alb`, `aws_vpc_security_group_ingress_rule.rds_from_ecs`, `aws_vpc_security_group_egress_rule.alb_to_ecs`, `aws_vpc_security_group_egress_rule.ecs_https`, `aws_vpc_security_group_egress_rule.ecs_to_rds` |
-| `network/alb` | `aws_lb.main`, `aws_lb_target_group.main`, `aws_lb_listener.http`, `aws_lb_listener.https` |
-| `network/cloudfront` | `aws_cloudfront_origin_access_control.frontend`, `aws_cloudfront_distribution.main`, `aws_s3_bucket_policy.frontend`, `aws_wafv2_web_acl.main`, `aws_cloudwatch_log_group.waf`, `aws_wafv2_web_acl_logging_configuration.main` |
-| `network/route53` | `aws_route53_zone.main` |
-| `storage/s3` | `aws_s3_bucket.this`, `aws_s3_bucket_public_access_block.this`, `aws_s3_bucket_ownership_controls.this`, `aws_s3_bucket_versioning.this`, `aws_s3_bucket_server_side_encryption_configuration.this` |
-| `container/ecr` | `aws_ecr_repository.main`, `aws_ecr_lifecycle_policy.main` |
-| `container/ecs` | `aws_ecs_cluster.main`, `aws_iam_role.task_execution`, `aws_iam_role_policy_attachment.task_execution`, `aws_iam_role.task`, `aws_cloudwatch_log_group.ecs`, `aws_ecs_task_definition.main`, `aws_ecs_service.main` |
-| `database/rds` | `aws_db_subnet_group.main`, `aws_rds_cluster_parameter_group.main`, `aws_db_parameter_group.main`, `aws_rds_cluster.main`, `aws_rds_cluster_instance.main` |
-| `security/acm` | `aws_acm_certificate.main`, `aws_route53_record.validation`, `aws_acm_certificate_validation.main` |
-| `security/kms` | `aws_kms_key.main`, `aws_kms_alias.main` |
-| `security/secrets_manager` | `aws_secretsmanager_secret_policy.rds_master_user` |
-| `monitoring/sns` | `aws_sns_topic.alarms`, `aws_sns_topic_policy.alarms`, `aws_sns_topic_subscription.email` |
-| `monitoring/cloudwatch` | `aws_cloudwatch_metric_alarm.main` |
-| `security/baseline` | `aws_s3_bucket.config`, `aws_s3_bucket_public_access_block.config`, `aws_s3_bucket_ownership_controls.config`, `aws_s3_bucket_versioning.config`, `aws_s3_bucket_server_side_encryption_configuration.config`, `aws_s3_bucket_policy.config`, `aws_iam_role.config`, `aws_iam_role_policy_attachment.config`, `aws_iam_role_policy.config_delivery`, `aws_config_configuration_recorder.main`, `aws_config_delivery_channel.main`, `aws_config_configuration_recorder_status.main`, `aws_guardduty_detector.main`, `aws_inspector2_enabler.main`, `aws_ecr_registry_scanning_configuration.main`, `aws_securityhub_account.main`, `aws_securityhub_product_subscription.guardduty`, `aws_securityhub_product_subscription.inspector` |
-| `security/cloudtrail` | `aws_s3_bucket.logs`, `aws_s3_bucket_public_access_block.logs`, `aws_s3_bucket_ownership_controls.logs`, `aws_s3_bucket_versioning.logs`, `aws_s3_bucket_server_side_encryption_configuration.logs`, `aws_s3_bucket_policy.logs`, `aws_cloudtrail.main` |
+| `vpc` | `aws_vpc.main`, `aws_subnet.public`, `aws_subnet.private`, `aws_internet_gateway.main`, `aws_eip.nat`, `aws_nat_gateway.main`, `aws_route_table.public`, `aws_route.public_internet`, `aws_route_table_association.public`, `aws_route_table.private`, `aws_route.private_internet`, `aws_route_table_association.private`, `aws_vpc_endpoint.s3`, `aws_security_group.alb`, `aws_security_group.ecs`, `aws_security_group.rds`, `aws_vpc_security_group_ingress_rule.alb_https`, `aws_vpc_security_group_ingress_rule.alb_http`, `aws_vpc_security_group_ingress_rule.ecs_from_alb`, `aws_vpc_security_group_ingress_rule.rds_from_ecs`, `aws_vpc_security_group_egress_rule.alb_to_ecs`, `aws_vpc_security_group_egress_rule.ecs_https`, `aws_vpc_security_group_egress_rule.ecs_to_rds` |
+| `alb` | `aws_lb.main`, `aws_lb_target_group.main`, `aws_lb_listener.http`, `aws_lb_listener.https` |
+| `cloudfront` | `aws_cloudfront_origin_access_control.frontend`, `aws_cloudfront_distribution.main`, `aws_s3_bucket_policy.frontend`, `aws_wafv2_web_acl.main`, `aws_cloudwatch_log_group.waf`, `aws_wafv2_web_acl_logging_configuration.main` |
+| `route53` | `aws_route53_zone.main` |
+| `s3` | `aws_s3_bucket.this`, `aws_s3_bucket_public_access_block.this`, `aws_s3_bucket_ownership_controls.this`, `aws_s3_bucket_versioning.this`, `aws_s3_bucket_server_side_encryption_configuration.this` |
+| `ecr` | `aws_ecr_repository.main`, `aws_ecr_lifecycle_policy.main` |
+| `ecs` | `aws_ecs_cluster.main`, `aws_iam_role.task_execution`, `aws_iam_role_policy_attachment.task_execution`, `aws_iam_role.task`, `aws_cloudwatch_log_group.ecs`, `aws_ecs_task_definition.main`, `aws_ecs_service.main` |
+| `rds` | `aws_db_subnet_group.main`, `aws_rds_cluster_parameter_group.main`, `aws_db_parameter_group.main`, `aws_rds_cluster.main`, `aws_rds_cluster_instance.main` |
+| `acm` | `aws_acm_certificate.main`, `aws_route53_record.validation`, `aws_acm_certificate_validation.main` |
+| `kms` | `aws_kms_key.main`, `aws_kms_alias.main` |
+| `secrets_manager` | `aws_secretsmanager_secret_policy.rds_master_user` |
+| `sns` | `aws_sns_topic.alarms`, `aws_sns_topic_policy.alarms`, `aws_sns_topic_subscription.email` |
+| `cloudwatch` | `aws_cloudwatch_metric_alarm.main` |
+| `security_baseline` | `aws_s3_bucket.config`, `aws_s3_bucket_public_access_block.config`, `aws_s3_bucket_ownership_controls.config`, `aws_s3_bucket_versioning.config`, `aws_s3_bucket_server_side_encryption_configuration.config`, `aws_s3_bucket_policy.config`, `aws_iam_role.config`, `aws_iam_role_policy_attachment.config`, `aws_iam_role_policy.config_delivery`, `aws_config_configuration_recorder.main`, `aws_config_delivery_channel.main`, `aws_config_configuration_recorder_status.main`, `aws_guardduty_detector.main`, `aws_inspector2_enabler.main`, `aws_ecr_registry_scanning_configuration.main`, `aws_securityhub_account.main`, `aws_securityhub_product_subscription.guardduty`, `aws_securityhub_product_subscription.inspector` |
+| `cloudtrail` | `aws_s3_bucket.logs`, `aws_s3_bucket_public_access_block.logs`, `aws_s3_bucket_ownership_controls.logs`, `aws_s3_bucket_versioning.logs`, `aws_s3_bucket_server_side_encryption_configuration.logs`, `aws_s3_bucket_policy.logs`, `aws_cloudtrail.main` |
 | `ses` | `aws_sesv2_configuration_set.main`, `aws_sesv2_email_identity.main`, `aws_route53_record.dkim`, `aws_sesv2_email_identity_mail_from_attributes.main`, `aws_route53_record.mail_from_mx`, `aws_route53_record.mail_from_spf`, `aws_route53_record.dmarc` |
 | `bootstrap` | `aws_iam_openid_connect_provider.github`, `aws_iam_role.terraform_deploy`, `aws_iam_role_policy_attachment.terraform_power_user_access`, `aws_iam_role_policy.terraform_project_iam`, `aws_iam_role.application_deploy`, `aws_iam_role_policy.application_deploy` |
-| `identity_center`（未使用） | `aws_ssoadmin_permission_set.this`, `aws_ssoadmin_managed_policy_attachment.readonly`, `aws_ssoadmin_account_assignment.this` |
 
 主要Data/Local:
 
@@ -457,24 +456,23 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 |---|---|
 | `environments/<env>` | `project_name`, `environment`, `aws_region`, `vpc_cidr`, `availability_zones`, `application_port`, `domain_name`, `frontend_bucket_name`, `frontend_bucket_force_destroy`, `enable_paid_resources`, `keep_image_count`, `untagged_image_expiration_days`, `ssl_policy`, `health_check_path`, `bootstrap_image_tag`, `container_name`, `task_cpu`, `task_memory`, `desired_count`, `autoscaling_min_capacity`, `autoscaling_max_capacity`, `autoscaling_cpu_target`, `log_retention_days`, `container_environment`, `database_name`, `database_master_username`, `aurora_engine_version`, `rds_instance_count`, `aurora_serverless_min_capacity`, `aurora_serverless_max_capacity`, `rds_backup_retention_period`, `rds_deletion_protection`, `rds_skip_final_snapshot`, `cloudwatch_alarm_actions`, `config_include_global_resource_types`, `cloudwatch_alarm_email_addresses` |
 | `modules` | 上記に加え、`common_tags`, `cloudfront_backend_path_pattern`, `cloudfront_price_class`, `kms_deletion_window_in_days`, `rds_preferred_backup_window`, `rds_preferred_maintenance_window`, `rds_apply_immediately`, `rds_performance_insights_enabled`, `rds_iam_database_authentication_enabled` |
-| `network/vpc` | `project_name`, `environment`, `vpc_cidr`, `availability_zones`, `common_tags`, `application_port`, `enable_paid_resources` |
-| `network/alb` | `project_name`, `environment`, `vpc_id`, `vpc_cidr`, `availability_zones`, `common_tags`, `alb_security_group_id`, `public_subnet_ids`, `certificate_arn`, `ssl_policy`, `application_port`, `health_check_path` |
-| `network/cloudfront` | `project_name`, `environment`, `frontend_bucket_id`, `frontend_bucket_arn`, `frontend_bucket_regional_domain_name`, `alb_origin_domain_name`, `enable_alb_origin`, `alb_origin_protocol_policy`, `aliases`, `acm_certificate_arn`, `backend_path_pattern`, `price_class`, `waf_log_retention_days`, `common_tags` |
-| `network/route53` | `project_name`, `environment`, `domain_name`, `common_tags` |
-| `storage/s3` | `project_name`, `environment`, `bucket_name`, `force_destroy`, `common_tags` |
-| `container/ecr` | `project_name`, `environment`, `common_tags`, `keep_image_count`, `untagged_image_expiration_days` |
-| `container/ecs` | `project_name`, `environment`, `aws_region`, `common_tags`, `private_subnet_ids`, `ecs_security_group_id`, `target_group_arn`, `ecr_repository_url`, `bootstrap_image_tag`, `container_name`, `application_port`, `task_cpu`, `task_memory`, `desired_count`, `autoscaling_min_capacity`, `autoscaling_max_capacity`, `autoscaling_cpu_target`, `log_retention_days`, `container_environment` |
-| `database/rds` | `project_name`, `environment`, `private_subnet_ids`, `rds_security_group_id`, `common_tags`, `database_name`, `master_username`, `master_user_secret_kms_key_id`, `engine_version`, `instance_count`, `serverless_min_capacity`, `serverless_max_capacity`, `backup_retention_period`, `preferred_backup_window`, `preferred_maintenance_window`, `deletion_protection`, `skip_final_snapshot`, `apply_immediately`, `performance_insights_enabled`, `iam_database_authentication_enabled` |
-| `security/acm` | `project_name`, `environment`, `domain_name`, `subject_alternative_names`, `route53_zone_id`, `common_tags` |
-| `security/kms` | `project_name`, `environment`, `alias_suffix`, `description`, `deletion_window_in_days`, `common_tags` |
-| `security/secrets_manager` | `secret_arn` |
-| `monitoring/sns` | `project_name`, `environment`, `common_tags`, `email_addresses` |
-| `monitoring/cloudwatch` | `project_name`, `environment`, `ecs_cluster_name`, `ecs_service_name`, `alb_arn_suffix`, `target_group_arn_suffix`, `rds_cluster_id`, `common_tags`, `alarm_actions` |
-| `security/baseline` | `project_name`, `environment`, `common_tags`, `include_global_resource_types` |
-| `security/cloudtrail` | `project_name`, `environment`, `common_tags` |
+| `vpc` | `project_name`, `environment`, `vpc_cidr`, `availability_zones`, `common_tags`, `application_port`, `enable_paid_resources` |
+| `alb` | `project_name`, `environment`, `vpc_id`, `vpc_cidr`, `availability_zones`, `common_tags`, `alb_security_group_id`, `public_subnet_ids`, `certificate_arn`, `ssl_policy`, `application_port`, `health_check_path` |
+| `cloudfront` | `project_name`, `environment`, `frontend_bucket_id`, `frontend_bucket_arn`, `frontend_bucket_regional_domain_name`, `alb_origin_domain_name`, `enable_alb_origin`, `alb_origin_protocol_policy`, `aliases`, `acm_certificate_arn`, `backend_path_pattern`, `price_class`, `waf_log_retention_days`, `common_tags` |
+| `route53` | `project_name`, `environment`, `domain_name`, `common_tags` |
+| `s3` | `project_name`, `environment`, `bucket_name`, `force_destroy`, `common_tags` |
+| `ecr` | `project_name`, `environment`, `common_tags`, `keep_image_count`, `untagged_image_expiration_days` |
+| `ecs` | `project_name`, `environment`, `aws_region`, `common_tags`, `private_subnet_ids`, `ecs_security_group_id`, `target_group_arn`, `ecr_repository_url`, `bootstrap_image_tag`, `container_name`, `application_port`, `task_cpu`, `task_memory`, `desired_count`, `autoscaling_min_capacity`, `autoscaling_max_capacity`, `autoscaling_cpu_target`, `log_retention_days`, `container_environment` |
+| `rds` | `project_name`, `environment`, `private_subnet_ids`, `rds_security_group_id`, `common_tags`, `database_name`, `master_username`, `master_user_secret_kms_key_id`, `engine_version`, `instance_count`, `serverless_min_capacity`, `serverless_max_capacity`, `backup_retention_period`, `preferred_backup_window`, `preferred_maintenance_window`, `deletion_protection`, `skip_final_snapshot`, `apply_immediately`, `performance_insights_enabled`, `iam_database_authentication_enabled` |
+| `acm` | `project_name`, `environment`, `domain_name`, `subject_alternative_names`, `route53_zone_id`, `common_tags` |
+| `kms` | `project_name`, `environment`, `alias_suffix`, `description`, `deletion_window_in_days`, `common_tags` |
+| `secrets_manager` | `secret_arn` |
+| `sns` | `project_name`, `environment`, `common_tags`, `email_addresses` |
+| `cloudwatch` | `project_name`, `environment`, `ecs_cluster_name`, `ecs_service_name`, `alb_arn_suffix`, `target_group_arn_suffix`, `rds_cluster_id`, `common_tags`, `alarm_actions` |
+| `security_baseline` | `project_name`, `environment`, `common_tags`, `include_global_resource_types` |
+| `cloudtrail` | `project_name`, `environment`, `common_tags` |
 | `ses` | `project_name`, `environment`, `aws_region`, `domain_name`, `route53_zone_id`, `dmarc_record`, `common_tags` |
 | `bootstrap` | `project_name`, `environment`, `aws_region`, `aws_account_id`, `terraform_github_repository`, `application_github_repository` |
-| `identity_center`（未使用） | `permission_set_name`, `group_name`, `target_account_id`, `account_assignments` |
 
 ## 5. Module間の依存関係
 
@@ -752,7 +750,7 @@ flowchart LR
 3. `environments/<env>/main.tf`: `module.main` に本当に渡しているか確認する。
 4. `modules/variables.tf`: 共通オーケストレーターの契約を確認する。
 5. `modules/main.tf`: 対象Child Module、`count`、Module間Outputを確認する。
-6. `modules/<category>/<module>/variables.tf`: Child Module Inputを確認する。
+6. `modules/<module>/variables.tf`: Child Module Inputを確認する。
 7. 同Module内のResource/Data/Local: Resource名、置換条件、IAM/通信を確認する。
 8. `outputs.tf`: 下流ModuleやRootへ公開される値を確認する。
 9. `environments/<env>/outputs.tf`: OperatorがCLIから取得可能か確認する。
@@ -844,8 +842,8 @@ Planでは最低限次を確認する。
 対象:
 
 - 環境値: `environments/<env>/terraform.tfvars` の `task_cpu`, `task_memory`。
-- 配線: Environment `main.tf` → `modules/variables.tf` → `modules/main.tf` → `modules/container/ecs/variables.tf`。
-- Resource: `modules/container/ecs/task_definition.tf` の `aws_ecs_task_definition.main`。
+- 配線: Environment `main.tf` → `modules/variables.tf` → `modules/main.tf` → `modules/ecs/variables.tf`。
+- Resource: `modules/ecs/task_definition.tf` の `aws_ecs_task_definition.main`。
 
 手順と注意:
 
@@ -864,7 +862,7 @@ Planでは最低限次を確認する。
 - ACU: `aurora_serverless_min_capacity`, `aurora_serverless_max_capacity`。
 - Backup: `rds_backup_retention_period`。
 - 削除保護: `rds_deletion_protection`, `rds_skip_final_snapshot`。
-- Resource: `modules/database/rds/cluster.tf`, `instance.tf`。
+- Resource: `modules/rds/cluster.tf`, `instance.tf`。
 
 安全確認:
 
@@ -877,7 +875,7 @@ Planでは最低限次を確認する。
 
 ### 12.3 Security Groupを変更する
 
-対象: `modules/network/vpc/security_group.tf`。
+対象: `modules/vpc/security_group.tf`。
 
 1. Source/DestinationをCIDRではなくSG参照で限定できるか検討する。
 2. EgressとIngressの両側が必要か確認する。
@@ -892,11 +890,11 @@ Planでは最低限次を確認する。
 
 | 目的 | 変更先 |
 |---|---|
-| ECS起動時のECR/Logs権限 | `modules/container/ecs/iam.tf` のTask Execution Role |
+| ECS起動時のECR/Logs権限 | `modules/ecs/iam.tf` のTask Execution Role |
 | アプリ実行時のAWS API権限 | 同ファイルのTask Roleへinline/managed policyを追加、またはRootのSES方式 |
 | Terraform GitHub Actions権限 | `modules/bootstrap/main.tf` のTerraform Deploy Role |
 | Application Deploy権限 | 同ファイルのApplication Deploy Role |
-| AWS Config権限 | `modules/security/baseline/config.tf` |
+| AWS Config権限 | `modules/security_baseline/config.tf` |
 
 ActionだけでなくResource ARNとConditionを同時に限定する。RDS SecretをECSから読む設計にする場合は、少なくともSecret参照、KMS Decrypt、Task DefinitionへのSecret ARN配線を一体で設計する。Master User Secretをアプリが直接使うべきかはコードから判断できず、専用DB User/Secretの方針決定が必要。
 
@@ -922,14 +920,13 @@ ActionだけでなくResource ARNとConditionを同時に限定する。RDS Secr
 | Critical | `enable_paid_resources` がALB/ECS/Aurora/NAT等の `count` を一括制御 | 停止Flagに見えるがfalse化はResource削除 | devではAuroraをFinal Snapshotなしで削除。API停止、DNS/Behavior変更も発生 | サービスごとにFlagを分離する、RDSは常設/停止方式を別設計、`prevent_destroy`や運用Guardrailを追加 |
 | Critical | PR WorkflowはDeploy RoleをOIDC Assume | Trust Policyが`pull_request` Subjectを許可しない | PR Planが認証段階で失敗 | 読取専用Plan Roleを追加しPR Subjectを限定許可、または安全なGitHub Environment/Workflow設計へ変更 |
 | High | ECS→RDSのSGだけ存在 | DB Endpoint/SecretをTaskへ渡さず、Task RoleにSecret/KMS/RDS権限なし | アプリからDB接続できない可能性 | アプリの認証方式を決定し、専用DB User/Secret、Task Definition `secrets`、最小IAMを実装 |
-| High | Auto Scaling Variableは全層にあるが `autoscaling.tf` は空 | 設定値が動作に反映されない | 負荷増加時にTask数が増えない | `aws_appautoscaling_target` と `aws_appautoscaling_policy` を実装するか、VariableとREADME記載を削除 |
+| High | Auto Scaling Variableは全層にあるが対応Resourceがない | 設定値が動作に反映されない | 負荷増加時にTask数が増えない | `aws_appautoscaling_target` と `aws_appautoscaling_policy` を実装するか、VariableとREADME記載を削除 |
 | High | dev/stg ALB HTTPを`0.0.0.0/0`へ公開 | CloudFront/WAFを迂回可能 | WAF Rule、TLS、CloudFront Header Policyが効かない直接経路 | CloudFront Prefix List制限、Origin Custom Header検証、またはInternal ALB/Private Originを検討 |
 | High | Terraform Deploy Roleに`PowerUserAccess` | 非IAM AWSサービスを広範に操作可能 | OIDC/Workflow侵害時のBlast Radiusが大きい | Plan/Apply Role分離、対象サービス/ARN/Tag Conditionへ段階的に縮小 |
 | High | Bootstrap StateはLocalのみ | 紛失/端末故障時のOIDC/IAM/State Bucket管理情報消失 | 再構築時に重複またはImport作業 | 暗号化された管理場所とBackup/復旧手順を定義。既存Stateを安全にRemote化する設計を検討 |
 | High | dev Providerに`allowed_account_ids`なし | 誤Accountへの作成防止が弱い | dev名Resourceを別Accountへ作る可能性 | dev通常RootとBootstrapにもAccount ID制限を追加 |
 | High | Final Snapshot Identifierが固定 | 過去の同名Snapshotが残ると削除失敗 | `enable_paid_resources=false` やCluster置換が止まる | 日時を直接Resource名に使わず、運用前削除確認/別Backup設計/Identifier運用を定義 |
 | High | NAT Gatewayが1AZに1台 | AZ障害時に全Private Subnetの外向き通信停止。Cross-AZ通信費も起こり得る | ECS Image pull/API通信等が停止 | 本番はAZごとにNAT + Private Route Tableを分離。Costとの判断を明文化 |
-| High | Identity Center Moduleが未接続かつ不正参照/循環依存 | README上の機能として使えず、将来呼出時に失敗 | Access管理の誤認、導入作業停止 | 使わないなら削除/対象外明記。使うなら依存関係、Variable、Output、管理Account Providerを再設計 |
 | Medium | `desired_count` をECS Serviceでignore | tfvarsの変更が稼働Task数へ反映されない | 設定値と実稼働が乖離 | 運用主体を明記。Auto Scaling実装後は整合するLifecycleへ変更 |
 | Medium | CloudTrailはManagement Eventのみ | S3 Object等のData Eventが監査されない | アプリデータ操作の追跡不足 | 対象Bucket/Lambda等に限定してData Eventを追加。アプリ操作監査は別途実装 |
 | Medium | CloudFront/ALB/S3 Access Logなし | リクエスト単位調査材料がWAF/ECS Log中心 | 障害・侵害調査が困難 | 保存先、保持期間、PII方針を決めてAccess Logを追加 |
@@ -950,10 +947,9 @@ ActionだけでなくResource ARNとConditionを同時に限定する。RDS Secr
 |---|---|---|
 | 各Environment Root | `frontend_bucket_name`, `frontend_bucket_force_destroy` | `module.main` までは渡るが、その先のS3 Moduleへ渡されない |
 | `modules/variables.tf` | 同上 | `modules/main.tf` で参照されない |
-| `modules/storage/s3/variables.tf` | `bucket_name`, `force_destroy` | `bucket.tf` はLocalの自動名/falseを直接使用 |
-| `modules/network/alb/variables.tf` | `vpc_cidr`, `availability_zones` | ALB Resourceから参照されない |
-| ECS Module | `autoscaling_min_capacity`, `autoscaling_max_capacity`, `autoscaling_cpu_target` | `autoscaling.tf` が空 |
-| Identity Center Module | `group_name`, `target_account_id` | `account_assignments`だけがResourceで使われる。Module自体も未呼出し |
+| `modules/s3/variables.tf` | `bucket_name`, `force_destroy` | `bucket.tf` はLocalの自動名/falseを直接使用 |
+| `modules/alb/variables.tf` | `vpc_cidr`, `availability_zones` | ALB Resourceから参照されない |
+| ECS Module | `autoscaling_min_capacity`, `autoscaling_max_capacity`, `autoscaling_cpu_target` | Auto Scaling Resourceが未実装 |
 | `module.rds_secret_policy` | Output `secret_arn` | Parentで参照されない |
 | RDS Module | `cluster_arn`, ACU min/max Outputs | Parentで参照されない |
 | KMS Module | `key_id`, `alias_name` Outputs | Parentは `key_arn` のみ参照 |
@@ -1003,7 +999,7 @@ ActionだけでなくResource ARNとConditionを同時に限定する。RDS Secr
 
 | READMEの記載/示唆 | 現在のコード | 差分 |
 |---|---|---|
-| ECS Fargate / Service Auto Scaling | `autoscaling.tf` は空。3つのAuto Scaling Variableも未使用 | Auto Scalingは実装されていない |
+| ECS Fargate / Service Auto Scaling | 対応Resourceがなく、3つのAuto Scaling Variableも未使用 | Auto Scalingは実装されていない |
 | IAM Identity Centerを主要構成として掲載 | Moduleは未呼出し。さらに不正Resource参照と依存問題あり | 現在の環境には構築されない |
 | AWS Organizationsを主要構成として掲載 | `aws_organizations_*` Resource/Moduleなし。CloudTrailも `is_organization_trail = false` | 本リポジトリでは管理していない |
 | AWS Budgetsをコスト管理として掲載 | `aws_budgets_budget` 等なし | 実装されていない |
