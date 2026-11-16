@@ -131,6 +131,7 @@ module "cloudfront" {
   frontend_bucket_id                   = module.s3.buckets["frontend"].id
   frontend_bucket_arn                  = module.s3.buckets["frontend"].arn
   frontend_bucket_regional_domain_name = module.s3.buckets["frontend"].bucket_regional_domain_name
+  enable_paid_resources                = var.enable_paid_resources
   enable_alb_origin                    = var.enable_paid_resources
   # Reference the DNS resource directly so only the distribution waits for it.
   alb_origin_domain_name     = var.enable_paid_resources ? trimsuffix(aws_route53_record.alb_origin[0].fqdn, ".") : null

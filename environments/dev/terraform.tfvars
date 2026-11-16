@@ -12,7 +12,7 @@ application_port = 8080
 domain_name      = "dev.waki-cloud-lab.com"
 
 //コストがかかるサービスのon/off切り替え
-enable_paid_resources = true
+enable_paid_resources = false
 
 //　ecr ecs
 keep_image_count               = 5

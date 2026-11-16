@@ -102,3 +102,9 @@ variable "cloudfront_basic_auth" {
     error_message = "Use a nonempty username without colon, a nonempty password."
   }
 }
+
+variable "enable_paid_resources" {
+  description = "Whether to create the WAF web ACL, its rules, and logging resources"
+  type        = bool
+  default     = false
+}

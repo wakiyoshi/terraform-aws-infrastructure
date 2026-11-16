@@ -34,7 +34,7 @@ resource "aws_cloudfront_distribution" "main" {
   default_root_object = "index.html"
   price_class         = var.price_class
   http_version        = "http2and3"
-  web_acl_id          = aws_wafv2_web_acl.main.arn
+  web_acl_id          = var.enable_paid_resources ? aws_wafv2_web_acl.main[0].arn : null
   aliases             = var.aliases
 
   origin {

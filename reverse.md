@@ -11,7 +11,7 @@
 
 現在の全環境の `enable_paid_resources` は `false` である。この値がStateにも反映済みであると仮定した場合、コード上の実効構成は次のとおり。
 
-- 常設: VPC、Public/Private Subnet、Internet Gateway、Route Table、S3 Gateway Endpoint、Security Group本体、Frontend S3、CloudFront、WAF、WAF Logs、ECR、RDS Secret用KMS Key、SNS、AWS Config、GuardDuty、Security Hub、Inspector/ECR enhanced scan、CloudTrail。
+- 常設: VPC、Public/Private Subnet、Internet Gateway、Route Table、S3 Gateway Endpoint、Security Group本体、Frontend S3、CloudFront、ECR、RDS Secret用KMS Key、SNS、AWS Config、GuardDuty、Security Hub、Inspector/ECR enhanced scan、CloudTrail。
 - `prod` のみ常設: Route 53 Hosted Zone、Regional ACM、CloudFront用us-east-1 ACM、SES、CloudFront/Route 53 Alias Record。
 - 現在OFF: NAT Gateway、EIP、Private Subnetのデフォルトルート、ALB、ALB Listener/Target Group、ECS、Aurora、RDS Secret Policy、CloudWatch Metric Alarm、関連Security Group Rule、CloudFrontのALB Originと `/api/*` Behavior。
 
@@ -244,7 +244,7 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 | 項目 | 内容 |
 |---|---|
 | 呼び出し元 | `modules/main.tf`、常設 |
-| Inputs | `project_name`, `environment`, Frontend Bucket ID/ARN/Regional Domain、`enable_alb_origin`, `alb_origin_domain_name`, `alb_origin_protocol_policy`, `aliases`, `acm_certificate_arn`, `backend_path_pattern`, `price_class`, `waf_log_retention_days`, `common_tags` |
+| Inputs | `project_name`, `environment`, Frontend Bucket ID/ARN/Regional Domain、`enable_paid_resources`, `enable_alb_origin`, `alb_origin_domain_name`, `alb_origin_protocol_policy`, `aliases`, `acm_certificate_arn`, `backend_path_pattern`, `price_class`, `waf_log_retention_days`, `common_tags` |
 | Data | AWS Managed Cache Policy 2種、Origin Request Policy、Security Headers Policy |
 | Resources | OAC、CloudFront Distribution、Frontend S3 Bucket Policy、WAF Web ACL、WAF Log Group、WAF Logging Configuration |
 | Outputs | `distribution_id`, `distribution_arn`, `domain_name`, `hosted_zone_id` |
@@ -255,7 +255,7 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 - `enable_alb_origin` のときだけDynamic `origin` と `/api/*` の `ordered_cache_behavior` を作る。
 - FrontendはManaged CachingOptimized、APIはManaged CachingDisabled。
 - prodのみAliasとus-east-1 ACMを設定。dev/stgはCloudFront Default Certificate。
-- WAFは全環境で常設。4つのAWS Managed Rule GroupとIP単位Rate Rule（limit 2000）を持つ。
+- WAFは `enable_paid_resources = true` の場合のみ作成する。4つのAWS Managed Rule GroupとIP単位Rate Rule（limit 2000）を持つ。Web ACL・ログ関連リソースも同じFlagで制御する。
 - WAF Logはus-east-1 CloudWatch Logsへ出力し、Authorization/Cookie HeaderをRedactする。
 - Distribution変更は全ユーザー経路へ影響し、反映に時間を要する。
 
@@ -458,7 +458,7 @@ Terraform要件は全Root/Bootstrapで `required_version = "~> 1.13"`、AWS Prov
 | `modules` | 上記に加え、`common_tags`, `cloudfront_backend_path_pattern`, `cloudfront_price_class`, `kms_deletion_window_in_days`, `rds_preferred_backup_window`, `rds_preferred_maintenance_window`, `rds_apply_immediately`, `rds_performance_insights_enabled`, `rds_iam_database_authentication_enabled` |
 | `vpc` | `project_name`, `environment`, `vpc_cidr`, `availability_zones`, `common_tags`, `application_port`, `enable_paid_resources` |
 | `alb` | `project_name`, `environment`, `vpc_id`, `vpc_cidr`, `availability_zones`, `common_tags`, `alb_security_group_id`, `public_subnet_ids`, `certificate_arn`, `ssl_policy`, `application_port`, `health_check_path` |
-| `cloudfront` | `project_name`, `environment`, `frontend_bucket_id`, `frontend_bucket_arn`, `frontend_bucket_regional_domain_name`, `alb_origin_domain_name`, `enable_alb_origin`, `alb_origin_protocol_policy`, `aliases`, `acm_certificate_arn`, `backend_path_pattern`, `price_class`, `waf_log_retention_days`, `common_tags` |
+| `cloudfront` | `project_name`, `environment`, `frontend_bucket_id`, `frontend_bucket_arn`, `frontend_bucket_regional_domain_name`, `alb_origin_domain_name`, `enable_paid_resources`, `enable_alb_origin`, `alb_origin_protocol_policy`, `aliases`, `acm_certificate_arn`, `backend_path_pattern`, `price_class`, `waf_log_retention_days`, `common_tags` |
 | `route53` | `project_name`, `environment`, `domain_name`, `common_tags` |
 | `s3` | `project_name`, `environment`, `bucket_name`, `force_destroy`, `common_tags` |
 | `ecr` | `project_name`, `environment`, `common_tags`, `keep_image_count`, `untagged_image_expiration_days` |
@@ -760,7 +760,7 @@ flowchart LR
 
 | 条件 | 作成/変更対象 |
 |---|---|
-| `var.enable_paid_resources` | NAT/EIP/Private default route、ALB、ECS、Aurora、Secret Policy、CloudWatch Alarm、SG Rule、CloudFront ALB Origin/API Behavior |
+| `var.enable_paid_resources` | NAT/EIP/Private default route、ALB、ECS、Aurora、Secret Policy、CloudWatch Alarm、SG Rule、CloudFront ALB Origin/API Behavior、WAF Web ACL/全ルール/ログ関連リソース |
 | `var.environment == "prod"` | Route 53、Regional/CloudFront ACM、SES、CloudFront Alias、A/AAAA、ALB origin DNS、SES Task Policy |
 | `length(var.cloudwatch_alarm_email_addresses) > 0` | SNS Module |
 | `length(var.availability_zones)` | Public/Private Subnet数とAssociation数 |
@@ -779,7 +779,7 @@ flowchart LR
 - `true → false`: 同ResourceをTerraform管理上削除。
 - prod AuroraはDeletion Protectionにより削除が失敗するはずだが、安全装置であって運用手順ではない。
 - stgはFinal Snapshotを作るが、devは `skip_final_snapshot = true` で最終Snapshotなしに削除される。
-- CloudFront Distributionは残るがAPI Origin/Behaviorが消える。
+- CloudFront Distributionは残るがAPI Origin/Behaviorが消える。WAFの関連付けも解除され、Web ACL・全ルール・ログ関連リソースは削除される。
 - KMS Key、ECR、Frontend S3、監査基盤は残る。
 
 単なるコスト停止のつもりでこのFlagを変更してはならない。必ずPlanのDestroy一覧とデータ退避を確認する。
