@@ -59,3 +59,8 @@ variable "application_port" {
 variable "health_check_path" {
   default = "/health"
 }
+
+variable "log_retention_days" {
+  type    = number
+  default = 30
+}

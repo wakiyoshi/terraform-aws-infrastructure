@@ -31,3 +31,8 @@ variable "application_port" {
 variable "enable_paid_resources" {
   type = bool
 }
+
+variable "log_retention_days" {
+  type    = number
+  default = 30
+}

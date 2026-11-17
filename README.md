@@ -1,5 +1,7 @@
 # 医療法人補助金申請システム（架空の案件）
 
+本リポジトリはTerraformによるAWSインフラの構築・設定を管理する。Webアプリケーションの実装・デプロイ・操作監査ログの記録は、別リポジトリ [grant-application-app](https://github.com/wakiyoshi/grant-application-app) で管理する。
+
 ## 1. サービス概要
 
 ### 1.1 目的
@@ -226,3 +228,9 @@ terraform -chdir="environments/$TF_ENV" apply terraform.tfplan
 ```
 
 `plan` の差分を確認してから `apply` を実行する。
+
+## ログ
+
+- CloudWatch Logs：VPC・WAF・CloudFront・ECS・Aurora・DNSクエリ。
+- S3：CloudTrail（管理イベント・全S3バケットのオブジェクト操作）・AWS Config・ALBアクセスログ。
+- 通常ログの保持期間：DEV 7日・STG 14日・PROD 30日。CloudTrail・Configの長期監査ログは別管理。

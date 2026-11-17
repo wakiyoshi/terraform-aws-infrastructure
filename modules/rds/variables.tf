@@ -138,3 +138,8 @@ variable "iam_database_authentication_enabled" {
   type        = bool
   default     = true
 }
+
+variable "log_retention_days" {
+  type    = number
+  default = 30
+}

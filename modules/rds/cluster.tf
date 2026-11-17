@@ -29,7 +29,10 @@ resource "aws_rds_cluster" "main" {
   enabled_cloudwatch_logs_exports = [
     "error",
     "slowquery",
+    "audit",
   ]
+
+  depends_on = [aws_cloudwatch_log_group.database]
 
   deletion_protection = var.deletion_protection
   skip_final_snapshot = var.skip_final_snapshot

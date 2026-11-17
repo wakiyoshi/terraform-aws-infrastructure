@@ -16,10 +16,15 @@ resource "aws_cloudtrail" "main" {
   enable_log_file_validation    = true
   is_organization_trail         = false
 
-  # Record read and write management operations; data events are not enabled.
+  # Management events and object operations across all S3 buckets.
   event_selector {
     read_write_type           = "All"
     include_management_events = true
+
+    data_resource {
+      type   = "AWS::S3::Object"
+      values = ["arn:${data.aws_partition.current.partition}:s3"]
+    }
   }
 
   tags = var.common_tags

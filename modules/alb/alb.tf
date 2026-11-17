@@ -12,6 +12,17 @@ resource "aws_lb" "main" {
   # 本番環境では誤削除を防止する
   enable_deletion_protection = var.environment == "prod"
 
+  access_logs {
+    bucket  = aws_s3_bucket.access_logs.id
+    enabled = true
+  }
+
+  depends_on = [
+    aws_s3_bucket_policy.access_logs,
+    aws_s3_bucket_ownership_controls.access_logs,
+    aws_s3_bucket_server_side_encryption_configuration.access_logs,
+  ]
+
   tags = merge(
     var.common_tags,
     {

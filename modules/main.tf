@@ -1,6 +1,9 @@
 //vpc
 module "vpc" {
   source                = "./vpc"
+
+  log_retention_days = var.log_retention_days
+
   project_name          = var.project_name
   environment           = var.environment
   vpc_cidr              = var.vpc_cidr
@@ -20,6 +23,12 @@ module "s3" {
 
 module "route53" {
   source = "./route53"
+
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
+  log_retention_days = var.log_retention_days
 
   project_name = var.project_name
   environment  = var.environment
@@ -86,6 +95,8 @@ moved {
 module "alb" {
   count  = var.enable_paid_resources ? 1 : 0
   source = "./alb"
+
+  log_retention_days = var.log_retention_days
 
   project_name          = var.project_name
   environment           = var.environment
@@ -196,7 +207,7 @@ module "ecs" {
   autoscaling_max_capacity = var.autoscaling_max_capacity
   autoscaling_cpu_target   = var.autoscaling_cpu_target
   log_retention_days       = var.log_retention_days
-  container_environment = merge(var.container_environment, {
+  container_environment = merge({ LOG_CHANNEL = "stderr" }, var.container_environment, {
     AWS_BUCKET         = module.s3.buckets["attachments"].id
     AWS_DEFAULT_REGION = var.aws_region
     DB_CONNECTION      = "mysql"
@@ -257,6 +268,8 @@ module "rds_secrets_kms" {
 module "rds" {
   count  = var.enable_paid_resources ? 1 : 0
   source = "./rds"
+
+  log_retention_days = var.log_retention_days
 
   project_name                        = var.project_name
   environment                         = var.environment

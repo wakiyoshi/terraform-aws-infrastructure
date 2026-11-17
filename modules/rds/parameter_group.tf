@@ -18,6 +18,31 @@ resource "aws_rds_cluster_parameter_group" "main" {
     value = "Asia/Tokyo"
   }
 
+  parameter {
+    name  = "slow_query_log"
+    value = "1"
+  }
+
+  parameter {
+    name  = "log_output"
+    value = "FILE"
+  }
+
+  parameter {
+    name  = "long_query_time"
+    value = "2"
+  }
+
+  parameter {
+    name  = "server_audit_logging"
+    value = "1"
+  }
+
+  parameter {
+    name  = "server_audit_events"
+    value = "CONNECT,QUERY_DDL,QUERY_DCL"
+  }
+
   tags = var.common_tags
 }
 
