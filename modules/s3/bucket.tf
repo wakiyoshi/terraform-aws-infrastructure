@@ -4,6 +4,10 @@ data "aws_region" "current" {}
 
 locals {
   buckets = {
+    attachments = {
+      purpose       = "Application attachments"
+      force_destroy = false
+    }
     frontend = {
       purpose       = "Frontend SPA assets"
       force_destroy = false

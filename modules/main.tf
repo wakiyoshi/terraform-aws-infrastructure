@@ -197,10 +197,12 @@ module "ecs" {
   autoscaling_cpu_target   = var.autoscaling_cpu_target
   log_retention_days       = var.log_retention_days
   container_environment = merge(var.container_environment, {
-    DB_CONNECTION = "mysql"
-    DB_HOST       = module.rds[0].endpoint
-    DB_PORT       = tostring(module.rds[0].port)
-    DB_DATABASE   = var.database_name
+    AWS_BUCKET         = module.s3.buckets["attachments"].id
+    AWS_DEFAULT_REGION = var.aws_region
+    DB_CONNECTION      = "mysql"
+    DB_HOST            = module.rds[0].endpoint
+    DB_PORT            = tostring(module.rds[0].port)
+    DB_DATABASE        = var.database_name
   })
   database_secret_arn  = module.rds[0].master_user_secret_arn
   container_secrets    = var.container_secrets
@@ -330,4 +332,27 @@ module "cloudtrail" {
   project_name = var.project_name
   environment  = var.environment
   common_tags  = var.common_tags
+}
+
+# 添付ファイルへのアクセスはアプリ用Task Roleに限定する。
+resource "aws_iam_role_policy" "ecs_attachments" {
+  count = var.enable_paid_resources ? 1 : 0
+
+  name = "${var.project_name}-${var.environment}-attachments"
+  role = module.ecs[0].task_role_name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = module.s3.buckets["attachments"].arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:AbortMultipartUpload"]
+        Resource = "${module.s3.buckets["attachments"].arn}/*"
+      },
+    ]
+  })
 }

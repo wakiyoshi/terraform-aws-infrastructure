@@ -91,3 +91,8 @@ output "securityhub_arn" {
 output "ecr_scan_type" {
   value = module.main.ecr_scan_type
 }
+
+output "attachments_bucket_name" {
+  description = "Private bucket for application attachments"
+  value       = module.main.attachments_bucket_name
+}
