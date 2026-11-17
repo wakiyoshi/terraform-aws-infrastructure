@@ -115,13 +115,7 @@ module "github_actions_oidc" {
   environment                   = var.environment
   aws_region                    = var.aws_region
   aws_account_id                = data.aws_caller_identity.current.account_id
-  terraform_github_repository   = "wakiyoshi/terraform-aws-infrastructure"
   application_github_repository = "wakiyoshi/grant-application-app"
-}
-
-output "terraform_deploy_role_arn" {
-  description = "ARN used for this environment's Terraform GitHub Actions variable"
-  value       = module.github_actions_oidc.terraform_deploy_role_arn
 }
 
 output "application_deploy_role_arn" {

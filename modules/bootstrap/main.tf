@@ -1,5 +1,4 @@
 locals {
-  terraform_role_name   = "terraform-gha-${var.environment}-deploy-role"
   application_role_name = "application-gha-${var.environment}-deploy-role"
 
   ecr_repository_name = var.environment == "prod" ? "${var.project_name}-app" : "${var.project_name}-${var.environment}-app"
@@ -20,87 +19,6 @@ resource "aws_iam_openid_connect_provider" "github" {
     Name    = "github-actions-oidc"
     Purpose = "GitHubActionsOIDC"
   }
-}
-
-data "aws_iam_policy_document" "terraform_assume_role" {
-  statement {
-    effect  = "Allow"
-    actions = ["sts:AssumeRoleWithWebIdentity"]
-
-    principals {
-      type        = "Federated"
-      identifiers = [aws_iam_openid_connect_provider.github.arn]
-    }
-
-    condition {
-      test     = "StringEquals"
-      variable = "token.actions.githubusercontent.com:aud"
-      values   = ["sts.amazonaws.com"]
-    }
-
-    condition {
-      test     = "StringLike"
-      variable = "token.actions.githubusercontent.com:sub"
-      values = [
-        "repo:${var.terraform_github_repository}:ref:refs/heads/main",
-        "repo:${var.terraform_github_repository}:environment:${upper(var.environment)}",
-      ]
-    }
-  }
-}
-
-resource "aws_iam_role" "terraform_deploy" {
-  name                 = local.terraform_role_name
-  assume_role_policy   = data.aws_iam_policy_document.terraform_assume_role.json
-  max_session_duration = 3600
-
-  tags = {
-    Name    = local.terraform_role_name
-    Purpose = "TerraformGitHubActions"
-  }
-}
-
-resource "aws_iam_role_policy_attachment" "terraform_power_user_access" {
-  role       = aws_iam_role.terraform_deploy.name
-  policy_arn = "arn:aws:iam::aws:policy/PowerUserAccess"
-}
-
-data "aws_iam_policy_document" "terraform_project_iam" {
-  statement {
-    sid    = "ManageProjectRoles"
-    effect = "Allow"
-    actions = [
-      "iam:AttachRolePolicy",
-      "iam:CreateRole",
-      "iam:DeleteRole",
-      "iam:DeleteRolePolicy",
-      "iam:DetachRolePolicy",
-      "iam:GetRole",
-      "iam:GetRolePolicy",
-      "iam:ListAttachedRolePolicies",
-      "iam:ListRolePolicies",
-      "iam:ListRoleTags",
-      "iam:PassRole",
-      "iam:PutRolePolicy",
-      "iam:TagRole",
-      "iam:UntagRole",
-      "iam:UpdateAssumeRolePolicy",
-    ]
-    resources = ["arn:aws:iam::${var.aws_account_id}:role/${var.project_name}-${var.environment}-*"]
-  }
-
-  statement {
-    sid       = "ReadAWSManagedPolicies"
-    effect    = "Allow"
-    actions   = ["iam:GetPolicy"]
-    resources = ["arn:aws:iam::aws:policy/*"]
-  }
-}
-
-resource "aws_iam_role_policy" "terraform_project_iam" {
-  name   = "${local.terraform_role_name}-project-iam"
-  role   = aws_iam_role.terraform_deploy.id
-  policy = data.aws_iam_policy_document.terraform_project_iam.json
 }
 
 data "aws_iam_policy_document" "application_assume_role" {

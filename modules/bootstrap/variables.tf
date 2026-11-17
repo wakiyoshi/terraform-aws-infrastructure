@@ -23,11 +23,6 @@ variable "aws_account_id" {
   type        = string
 }
 
-variable "terraform_github_repository" {
-  description = "GitHub repository allowed to assume the Terraform deployment role"
-  type        = string
-}
-
 variable "application_github_repository" {
   description = "GitHub repository allowed to assume the application deployment role"
   type        = string

@@ -1,8 +1,3 @@
-output "terraform_deploy_role_arn" {
-  description = "ARN of the GitHub Actions role used by the Terraform repository"
-  value       = aws_iam_role.terraform_deploy.arn
-}
-
 output "application_deploy_role_arn" {
   description = "ARN of the GitHub Actions role used by the application repository"
   value       = aws_iam_role.application_deploy.arn

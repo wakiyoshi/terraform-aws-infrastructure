@@ -122,7 +122,7 @@ Aurora MySQLでは自動バックアップおよびPITR（Point-in-Time Recovery
 | 監査・構成管理 | CloudTrail / AWS Config / アプリケーション監査ログ |
 | 通知 | SNS / SES |
 | コンテナレジストリ | ECR |
-| CI/CD | GitHub Actions |
+| インフラデプロイ | Terraform CLIによる手動実行 |
 | IaC | Terraform |
 | コスト管理 | AWS Budgets（本リポジトリの管理対象外） / AWS Cost Explorer |
 
@@ -190,23 +190,39 @@ CloudTrailとは別に、申請・差戻し・審査・承認等の業務操作�
 
 ---
 
-## 5. 初期構築手順
+## 5. 手動デプロイ手順
 
-以下はDEV環境の例とする。STG / PRODでは環境名およびAWSプロファイルを変更する。
-
-### 5.1 Bootstrap
-
-1. `environments/dev/bootstrap/terraform.tfvars` を設定する。
-2. AWSへログインし、Terraform State用S3バケットおよびCI/CD用IAM Roleを作成する。
+DEVの例。STG / PRODでは環境名とAWSプロファイルを変更する。
 
 ```bash
-export AWS_PROFILE=dev-account
-
+export TF_ENV=dev AWS_PROFILE=dev-account
 aws sso login --profile "$AWS_PROFILE"
 aws sts get-caller-identity
+```
 
-terraform -chdir=environments/dev/bootstrap init
-terraform -chdir=environments/dev/bootstrap plan
-terraform -chdir=environments/dev/bootstrap apply
+### 5.1 初回のみ（State用S3・アプリ配信用IAM）
 
-terraform -chdir=environments/dev/bootstrap output
+```bash
+terraform -chdir="environments/$TF_ENV/bootstrap" init
+terraform -chdir="environments/$TF_ENV/bootstrap" plan -out=bootstrap.tfplan
+terraform -chdir="environments/$TF_ENV/bootstrap" apply bootstrap.tfplan
+```
+
+### 5.2 通常のデプロイ
+
+DEVでは事前に `environments/dev/basic-auth.secrets.auto.tfvars`（Git管理対象外）に認証情報を設定する。
+
+```hcl
+cloudfront_basic_auth = {
+  username = "任意のユーザー名"
+  password = "任意のパスワード"
+}
+```
+
+```bash
+terraform -chdir="environments/$TF_ENV" init
+terraform -chdir="environments/$TF_ENV" plan -out=terraform.tfplan
+terraform -chdir="environments/$TF_ENV" apply terraform.tfplan
+```
+
+`plan` の差分を確認してから `apply` を実行する。
