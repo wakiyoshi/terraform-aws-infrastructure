@@ -60,7 +60,7 @@ resource "aws_ecs_service" "main" {
 
   // Terraformのリソースの作成・更新・削除方法を制御する設定です。
   lifecycle {
-    # desired_countは運用側、Task Definition revisionはアプリ側Workflowが管理する
+    # desired_countはAuto Scaling、Task Definition revisionはアプリ側Workflowが管理する
     ignore_changes = [
       desired_count,
       task_definition,
